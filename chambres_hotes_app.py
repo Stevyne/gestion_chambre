@@ -6,6 +6,7 @@ Stockage : en mémoire (pas de base de données)
 Interface : Tkinter (multi-plateforme)
 """
 
+from os import path
 import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog
 from datetime import datetime, timedelta
@@ -888,9 +889,14 @@ class AppChambresHotes:
         conn.close()
 
     def _charger_donnees(self):
-        import sqlite3, os
-        path = self._get_db_path()
-        if not os.path.exists(path):
+        import sqlite3, os, sys
+        db_path = self._get_db_path()
+        # Si le .db intégré dans le .exe existe (sys._MEIPASS) mais pas dans le répertoire du .exe, le copier
+        meipass_db = os.path.join(getattr(sys, '_MEIPASS', ''), "chambres.db") if getattr(sys, 'frozen', False) else ""
+        if meipass_db and os.path.exists(meipass_db) and not os.path.exists(db_path):
+            import shutil
+            shutil.copy(meipass_db, db_path)
+        if not os.path.exists(db_path):
             self._init_db()
             return
         try:
