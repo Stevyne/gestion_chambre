@@ -203,22 +203,89 @@ class AppChambresHotes:
 
         tk.Label(frame, text="État des Chambres", font=("Segoe UI", 20, "bold"), bg="#fff8e7", fg="#3a2a1a").pack(pady=(15, 20))
 
-        # Liste des chambres
-        liste_frame = tk.Frame(frame, bg="#fff8e7")
-        liste_frame.pack(fill="both", expand=True, padx=20, pady=10)
+        # Liste des chambres (conteneur principal : table + formulaire côte à côte)
+        conteneur_principal = tk.Frame(frame, bg="#fff8e7")
+        conteneur_principal.pack(fill="both", expand=True, padx=20, pady=10)
 
-        self.table_chambres = ttk.Treeview(liste_frame, columns=("num", "nom", "type", "prix", "statut"), show="headings", height=10)
+        liste_frame = tk.Frame(conteneur_principal, bg="#fff8e7")
+        liste_frame.pack(side="left", fill="both", expand=True)
+
+        self.table_chambres = ttk.Treeview(liste_frame, columns=("num", "nom", "type", "prix", "statut"), show="headings", height=12)
         for col in ("num", "nom", "type", "prix", "statut"):
             self.table_chambres.heading(col, text=col.capitalize())
             self.table_chambres.column(col, width=160, anchor="center")
-        self.table_chambres.pack(side="left", fill="both", expand=True)
+        self.table_chambres.pack(fill="both", expand=True)
 
-        # Légende / Détails
-        details = tk.LabelFrame(frame, text="Informations", bg="#fff8e7", font=("Segoe UI", 10, "bold"), fg="#5a4a32")
-        details.pack(fill="x", padx=20, pady=10)
-        tk.Label(details, text="• Vert  = Chambre disponible\n• Rouge = Chambre occupée aujourd'hui", bg="#fff8e7", fg="#4a3c2a", font=("Segoe UI", 9), justify="left").pack(anchor="w", padx=10, pady=8)
+        # Légende / Détails + Formulaire d'ajout (dans le même conteneur, à droite)
+        colonne_droite = tk.Frame(conteneur_principal, bg="#fff8e7", width=300)
+        colonne_droite.pack(side="right", fill="y", padx=(15, 0))
+        colonne_droite.pack_propagate(False)
+
+        details = tk.LabelFrame(colonne_droite, text="Informations", bg="#fff8e7", font=("Segoe UI", 10, "bold"), fg="#5a4a32")
+        details.pack(fill="x", pady=(0, 15))
+        tk.Label(details, text="• Vert  = Disponible\n• Rouge = Occupée", bg="#fff8e7", fg="#4a3c2a", font=("Segoe UI", 9), justify="left").pack(anchor="w", padx=10, pady=8)
+
+        # === FORMULAIRE AJOUT CHAMBRE ===
+        form_chambre = tk.LabelFrame(colonne_droite, text="Ajouter une chambre", bg="#fff8e7", font=("Segoe UI", 11, "bold"), fg="#5a4a32")
+        form_chambre.pack(fill="x", pady=10)
+
+        tk.Label(form_chambre, text="Numéro :", bg="#fff8e7", font=("Segoe UI", 9)).pack(anchor="w", padx=10, pady=(10, 2))
+        self.entry_chambre_num = tk.Entry(form_chambre, font=("Segoe UI", 10), width=18)
+        self.entry_chambre_num.pack(anchor="w", padx=10, pady=2)
+
+        tk.Label(form_chambre, text="Nom :", bg="#fff8e7", font=("Segoe UI", 9)).pack(anchor="w", padx=10, pady=(8, 2))
+        self.entry_chambre_nom = tk.Entry(form_chambre, font=("Segoe UI", 10), width=25)
+        self.entry_chambre_nom.pack(anchor="w", padx=10, pady=2)
+        self.entry_chambre_nom.insert(0, "Chambre du Soleil")
+
+        tk.Label(form_chambre, text="Type :", bg="#fff8e7", font=("Segoe UI", 9)).pack(anchor="w", padx=10, pady=(8, 2))
+        self.entry_chambre_type = ttk.Combobox(form_chambre, values=["Simple", "Double", "Suite"], width=15, state="readonly")
+        self.entry_chambre_type.pack(anchor="w", padx=10, pady=2)
+        self.entry_chambre_type.current(1)
+
+        tk.Label(form_chambre, text="Prix / nuit (€) :", bg="#fff8e7", font=("Segoe UI", 9)).pack(anchor="w", padx=10, pady=(8, 2))
+        self.entry_chambre_prix = tk.Entry(form_chambre, font=("Segoe UI", 10), width=15)
+        self.entry_chambre_prix.pack(anchor="w", padx=10, pady=2)
+        self.entry_chambre_prix.insert(0, "100")
+
+        btn_ajouter_ch = tk.Button(form_chambre, text="➕ Ajouter cette chambre", command=self._ajouter_chambre, bg="#4a90e2", fg="#ffffff", font=("Segoe UI", 10, "bold"), padx=12, pady=5, relief="raised", bd=2)
+        btn_ajouter_ch.pack(pady=12)
 
         return frame
+
+    def _ajouter_chambre(self):
+        try:
+            num = int(self.entry_chambre_num.get().strip())
+        except ValueError:
+            messagebox.showerror("Erreur", "Le numéro de chambre doit être un nombre entier.")
+            return
+        nom = self.entry_chambre_nom.get().strip()
+        type_ch = self.entry_chambre_type.get()
+        try:
+            prix = float(self.entry_chambre_prix.get().strip())
+        except ValueError:
+            messagebox.showerror("Erreur", "Le prix doit être un nombre.")
+            return
+        if not nom:
+            messagebox.showerror("Erreur", "Veuillez donner un nom à la chambre.")
+            return
+        # Vérifier si le numéro existe déjà
+        for c in CHAMBRES:
+            if c["numero"] == num:
+                messagebox.showerror("Erreur", f"Le numéro {num} existe déjà.")
+                return
+        CHAMBRES.append({"numero": num, "nom": nom, "type": type_ch, "prix_nuit": prix})
+        # Mettre à jour le combo des réservations
+        self.combo_chambre.config(values=[f"Chambre {c['numero']} - {c['nom']}" for c in CHAMBRES])
+        messagebox.showinfo("Succès", f"Chambre {num} — {nom} ajoutée !")
+        self._actualiser_toutes_les_vues()
+        # Nettoyer le formulaire
+        self.entry_chambre_num.delete(0, tk.END)
+        self.entry_chambre_num.insert(0, str(num + 1))
+        self.entry_chambre_nom.delete(0, tk.END)
+        self.entry_chambre_nom.insert(0, "Nouvelle chambre")
+        self.entry_chambre_prix.delete(0, tk.END)
+        self.entry_chambre_prix.insert(0, "85")
 
     def _actualiser_chambres(self):
         for item in self.table_chambres.get_children():
