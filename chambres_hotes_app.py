@@ -6,7 +6,6 @@ Stockage : en mémoire (pas de base de données)
 Interface : Tkinter (multi-plateforme)
 """
 
-from os import path
 import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog
 from datetime import datetime, timedelta
@@ -81,7 +80,7 @@ class AppChambresHotes:
         self.notebook.add(self.onglet_paiements, text="💰 Paiements")
 
         # Barre de statut
-        self.status = tk.Label(root, text="Prêt • Données en mémoire • Aucune base de données requise", bg="#5a4a32", fg="#fff8e7", font=("Segoe UI", 9), pady=6)
+        self.status = tk.Label(root, text="Prêt • Données SQLite (chambres.db) • Persistance automatique", bg="#5a4a32", fg="#fff8e7", font=("Segoe UI", 9), pady=6)
         self.status.pack(fill="x", side="bottom")
 
         # Charger les données sauvegardées
@@ -900,7 +899,7 @@ class AppChambresHotes:
             self._init_db()
             return
         try:
-            conn = sqlite3.connect(path)
+            conn = sqlite3.connect(db_path)
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM chambres")
             rows = cursor.fetchall()
@@ -913,7 +912,7 @@ class AppChambresHotes:
             RESERVATIONS.clear()
             for row in rows:
                 RESERVATIONS.append({"id": row[0], "nom_client": row[1], "chambre_num": row[2], "date_debut": row[3], "date_fin": row[4], "montant_total": row[5], "montant_paye": row[6]})
-            next_id = 4
+            next_id = max([r["id"] for r in RESERVATIONS] + [0]) + 1
             conn.close()
             if hasattr(self, 'combo_chambre'):
                 self.combo_chambre.config(values=[f"Chambre {c['numero']} - {c['nom']}" for c in CHAMBRES])
