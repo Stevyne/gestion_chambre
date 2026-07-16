@@ -30,7 +30,7 @@ RESERVATIONS = [
 ]
 
 # On calcule le prochain ID
-next_id = max([r["id"] for r in RESERVATIONS], default=0) + 1
+next_id = 4
 
 # ============================================================
 # CLASSE PRINCIPALE
@@ -82,6 +82,9 @@ class AppChambresHotes:
         # Barre de statut
         self.status = tk.Label(root, text="Prêt • Données en mémoire • Aucune base de données requise", bg="#5a4a32", fg="#fff8e7", font=("Segoe UI", 9), pady=6)
         self.status.pack(fill="x", side="bottom")
+
+        # Charger les données sauvegardées
+        self._charger_donnees()
 
         # Mise à jour initiale
         self._actualiser_accueil()
@@ -216,8 +219,9 @@ class AppChambresHotes:
             self.table_chambres.column(col, width=160, anchor="center")
         self.table_chambres.pack(fill="both", expand=True)
 
+
         # Légende / Détails + Formulaire d'ajout (dans le même conteneur, à droite)
-        colonne_droite = tk.Frame(conteneur_principal, bg="#fff8e7", width=300)
+        colonne_droite = tk.Frame(conteneur_principal, bg="#fff8e7", width=380)
         colonne_droite.pack(side="right", fill="y", padx=(15, 0))
         colonne_droite.pack_propagate(False)
 
@@ -248,8 +252,17 @@ class AppChambresHotes:
         self.entry_chambre_prix.pack(anchor="w", padx=10, pady=2)
         self.entry_chambre_prix.insert(0, "100")
 
-        btn_ajouter_ch = tk.Button(form_chambre, text="➕ Ajouter cette chambre", command=self._ajouter_chambre, bg="#4a90e2", fg="#ffffff", font=("Segoe UI", 10, "bold"), padx=12, pady=5, relief="raised", bd=2)
-        btn_ajouter_ch.pack(pady=12)
+        btn_ajouter_ch = tk.Button(form_chambre, text="➕ Ajouter cette chambre", command=self._ajouter_chambre, bg="#4a90e2", fg="#ffffff", font=("Segoe UI", 9, "bold"), padx=6, pady=3, relief="raised", bd=2)
+        btn_ajouter_ch.pack(pady=2)
+
+        btn_charger = tk.Button(form_chambre, text="📋 Charger sélection", command=self._charger_chambre_selectionnee, bg="#3498db", fg="#ffffff", font=("Segoe UI", 9, "bold"), padx=6, pady=3, relief="raised", bd=2)
+        btn_charger.pack(pady=2)
+
+        btn_modifier_ch = tk.Button(form_chambre, text="✏️ Modifier", command=self._modifier_chambre, bg="#e67e22", fg="#ffffff", font=("Segoe UI", 9, "bold"), padx=6, pady=3, relief="raised", bd=2)
+        btn_modifier_ch.pack(pady=2)
+
+        btn_supprimer_ch = tk.Button(form_chambre, text="❌ Supprimer", command=self._supprimer_chambre, bg="#c0392b", fg="#ffffff", font=("Segoe UI", 9, "bold"), padx=6, pady=3, relief="raised", bd=2)
+        btn_supprimer_ch.pack(pady=2)
 
         return frame
 
@@ -279,6 +292,7 @@ class AppChambresHotes:
         self.combo_chambre.config(values=[f"Chambre {c['numero']} - {c['nom']}" for c in CHAMBRES])
         messagebox.showinfo("Succès", f"Chambre {num} — {nom} ajoutée !")
         self._actualiser_toutes_les_vues()
+        self._sauvegarder_donnees()
         # Nettoyer le formulaire
         self.entry_chambre_num.delete(0, tk.END)
         self.entry_chambre_num.insert(0, str(num + 1))
@@ -286,6 +300,82 @@ class AppChambresHotes:
         self.entry_chambre_nom.insert(0, "Nouvelle chambre")
         self.entry_chambre_prix.delete(0, tk.END)
         self.entry_chambre_prix.insert(0, "85")
+
+    def _charger_chambre_selectionnee(self, event=None):
+        selection = self.table_chambres.selection()
+        if not selection:
+            return
+        item = self.table_chambres.item(selection[0])
+        valeurs = item["values"]
+        # Remplir le formulaire avec la chambre sélectionnée
+        self.entry_chambre_num.delete(0, tk.END)
+        self.entry_chambre_num.insert(0, str(valeurs[0]))
+        self.entry_chambre_nom.delete(0, tk.END)
+        self.entry_chambre_nom.insert(0, str(valeurs[1]))
+        self.entry_chambre_type.set(str(valeurs[2]))
+        self.entry_chambre_prix.delete(0, tk.END)
+        # Extraire le prix (sans le symbole €)
+        prix_str = str(valeurs[3]).replace(" €", "").replace("€", "").strip()
+        self.entry_chambre_prix.insert(0, prix_str)
+
+    def _modifier_chambre(self):
+        try:
+            num = int(self.entry_chambre_num.get().strip())
+        except ValueError:
+            messagebox.showerror("Erreur", "Le numéro de chambre doit être un nombre entier.")
+            return
+        nom = self.entry_chambre_nom.get().strip()
+        type_ch = self.entry_chambre_type.get()
+        try:
+            prix = float(self.entry_chambre_prix.get().strip())
+        except ValueError:
+            messagebox.showerror("Erreur", "Le prix doit être un nombre.")
+            return
+        if not nom:
+            messagebox.showerror("Erreur", "Veuillez donner un nom à la chambre.")
+            return
+        # Modifier la chambre dans la liste
+        for c in CHAMBRES:
+            if c["numero"] == num:
+                c["nom"] = nom
+                c["type"] = type_ch
+                c["prix_nuit"] = prix
+                break
+        else:
+            messagebox.showerror("Erreur", f"Aucune chambre avec le numéro {num} n'a été trouvée.")
+            return
+        # Mettre à jour le combo des réservations
+        self.combo_chambre.config(values=[f"Chambre {c['numero']} - {c['nom']}" for c in CHAMBRES])
+        messagebox.showinfo("Succès", f"Chambre {num} — {nom} modifiée !")
+        self._actualiser_toutes_les_vues()
+        self._sauvegarder_donnees()
+
+    def _supprimer_chambre(self):
+        try:
+            num = int(self.entry_chambre_num.get().strip())
+        except ValueError:
+            messagebox.showerror("Erreur", "Aucun numéro valide dans le formulaire. Cliquez d'abord sur une chambre dans la liste.")
+            return
+        if messagebox.askyesno("Confirmation", f"Voulez-vous vraiment supprimer la chambre {num} ?"):
+            chambre_a_supprimer = None
+            for c in CHAMBRES:
+                if c["numero"] == num:
+                    chambre_a_supprimer = c
+                    break
+            if chambre_a_supprimer:
+                CHAMBRES.remove(chambre_a_supprimer)
+                # Mettre à jour le combo des réservations
+                self.combo_chambre.config(values=[f"Chambre {c['numero']} - {c['nom']}" for c in CHAMBRES])
+                messagebox.showinfo("Succès", f"Chambre {num} supprimée.")
+                self._actualiser_toutes_les_vues()
+                self._sauvegarder_donnees()
+                # Nettoyer le formulaire
+                self.entry_chambre_num.delete(0, tk.END)
+                self.entry_chambre_nom.delete(0, tk.END)
+                self.entry_chambre_type.set("Double")
+                self.entry_chambre_prix.delete(0, tk.END)
+            else:
+                messagebox.showerror("Erreur", f"Chambre {num} non trouvée.")
 
     def _actualiser_chambres(self):
         for item in self.table_chambres.get_children():
@@ -342,7 +432,7 @@ class AppChambresHotes:
         self.entry_fin.insert(0, (datetime.now() + timedelta(days=3)).strftime("%Y-%m-%d"))
 
         tk.Label(grid, text="Montant total (€) :", bg="#fff8e7", font=("Segoe UI", 10)).grid(row=4, column=0, sticky="e", pady=6)
-        self.entry_total = tk.Entry(grid, font=("Segoe UI", 10), width=20)
+        self.entry_total = tk.Entry(grid, font=("Segoe UI", 10), width=20, state="readonly", readonlybackground="#fff8e7")
         self.entry_total.grid(row=4, column=1, sticky="w", pady=6)
         self.entry_total.insert(0, "300")
 
@@ -350,6 +440,11 @@ class AppChambresHotes:
         self.entry_paye = tk.Entry(grid, font=("Segoe UI", 10), width=20)
         self.entry_paye.grid(row=5, column=1, sticky="w", pady=6)
         self.entry_paye.insert(0, "0")
+
+        # Lier le calcul automatique
+        self.combo_chambre.bind("<<ComboboxSelected>>", self._calculer_montant_automatique)
+        self.entry_debut.bind("<KeyRelease>", self._calculer_montant_automatique)
+        self.entry_fin.bind("<KeyRelease>", self._calculer_montant_automatique)
 
         # Bouton
         btn_frame = tk.Frame(form, bg="#fff8e7")
@@ -368,6 +463,37 @@ class AppChambresHotes:
         self.table_reservations.pack(fill="both", expand=True, padx=10, pady=10)
 
         return frame
+
+    def _calculer_montant_automatique(self, event=None):
+        chambre_str = self.combo_chambre.get()
+        debut_str = self.entry_debut.get().strip()
+        fin_str = self.entry_fin.get().strip()
+        if not chambre_str or not debut_str or not fin_str:
+            self.entry_total.config(state="normal")
+            self.entry_total.delete(0, tk.END)
+            self.entry_total.insert(0, "0")
+            self.entry_total.config(state="readonly", readonlybackground="#fff8e7")
+            return
+        try:
+            chambre_num = int(chambre_str.split()[1])
+            debut_dt = datetime.strptime(debut_str, "%Y-%m-%d")
+            fin_dt = datetime.strptime(fin_str, "%Y-%m-%d")
+            duree = (fin_dt - debut_dt).days
+            if duree <= 0:
+                duree = 1  # au moins 1 nuit
+        except (ValueError, IndexError):
+            return
+        # Trouver le prix de la chambre
+        prix_nuit = 0
+        for ch in CHAMBRES:
+            if ch["numero"] == chambre_num:
+                prix_nuit = ch["prix_nuit"]
+                break
+        total = prix_nuit * duree
+        self.entry_total.config(state="normal")
+        self.entry_total.delete(0, tk.END)
+        self.entry_total.insert(0, str(total))
+        self.entry_total.config(state="readonly", readonlybackground="#fff8e7")
 
     def _ajouter_reservation(self):
         global next_id
@@ -422,6 +548,7 @@ class AppChambresHotes:
 
         messagebox.showinfo("Succès", f"Réservation enregistrée pour {nom} (Chambre {chambre_num}).")
         self._actualiser_toutes_les_vues()
+        self._sauvegarder_donnees()
 
     # ============================================================
     # CALENDRIER
@@ -728,7 +855,64 @@ class AppChambresHotes:
             global next_id
             next_id = 4
             self._actualiser_toutes_les_vues()
+            self._sauvegarder_donnees()
             messagebox.showinfo("Réinitialisé", "Les données ont été restaurées aux valeurs initiales.")
+
+    def _get_db_path(self):
+        import sys, os
+        if getattr(sys, 'frozen', False):
+            return os.path.join(os.path.dirname(sys.executable), "chambres.db")
+        else:
+            return os.path.join(os.path.dirname(os.path.abspath(__file__)), "chambres.db")
+
+    def _init_db(self):
+        import sqlite3
+        conn = sqlite3.connect(self._get_db_path())
+        cursor = conn.cursor()
+        cursor.execute('CREATE TABLE IF NOT EXISTS chambres (numero INTEGER PRIMARY KEY, nom TEXT, type TEXT, prix_nuit REAL)')
+        cursor.execute('CREATE TABLE IF NOT EXISTS reservations (id INTEGER PRIMARY KEY AUTOINCREMENT, nom_client TEXT, chambre_num INTEGER, date_debut TEXT, date_fin TEXT, montant_total REAL, montant_paye REAL)')
+        conn.commit()
+        conn.close()
+
+    def _sauvegarder_donnees(self):
+        import sqlite3
+        conn = sqlite3.connect(self._get_db_path())
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM chambres")
+        for ch in CHAMBRES:
+            cursor.execute("INSERT INTO chambres VALUES (?, ?, ?, ?)", (ch["numero"], ch["nom"], ch["type"], ch["prix_nuit"]))
+        cursor.execute("DELETE FROM reservations")
+        for r in RESERVATIONS:
+            cursor.execute("INSERT INTO reservations (id, nom_client, chambre_num, date_debut, date_fin, montant_total, montant_paye) VALUES (?, ?, ?, ?, ?, ?, ?)", (r["id"], r["nom_client"], r["chambre_num"], r["date_debut"], r["date_fin"], r["montant_total"], r["montant_paye"]))
+        conn.commit()
+        conn.close()
+
+    def _charger_donnees(self):
+        import sqlite3, os
+        path = self._get_db_path()
+        if not os.path.exists(path):
+            self._init_db()
+            return
+        try:
+            conn = sqlite3.connect(path)
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM chambres")
+            rows = cursor.fetchall()
+            global CHAMBRES, RESERVATIONS, next_id
+            CHAMBRES.clear()
+            for row in rows:
+                CHAMBRES.append({"numero": row[0], "nom": row[1], "type": row[2], "prix_nuit": row[3]})
+            cursor.execute("SELECT * FROM reservations")
+            rows = cursor.fetchall()
+            RESERVATIONS.clear()
+            for row in rows:
+                RESERVATIONS.append({"id": row[0], "nom_client": row[1], "chambre_num": row[2], "date_debut": row[3], "date_fin": row[4], "montant_total": row[5], "montant_paye": row[6]})
+            next_id = 4
+            conn.close()
+            if hasattr(self, 'combo_chambre'):
+                self.combo_chambre.config(values=[f"Chambre {c['numero']} - {c['nom']}" for c in CHAMBRES])
+        except Exception as e:
+            print(f"Erreur lors du chargement : {e}")
 
     def _apropos(self):
         messagebox.showinfo("À propos", "Application de gestion des chambres d'hôtes\nDéveloppée avec Python et Tkinter\nStockage des données en mémoire (RAM)\nPas de base de données requise\n© 2026")

@@ -5,7 +5,7 @@ a = Analysis(
     ['chambres_hotes_app.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[('chambres.db', '.')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
