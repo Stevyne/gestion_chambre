@@ -71,6 +71,7 @@ class AppChambresHotes:
         self.onglet_calendrier = self._creer_calendrier()
         self.onglet_historique = self._creer_historique()
         self.onglet_paiements = self._creer_paiements()
+        self.onglet_chiffre = self._creer_chiffre_affaires()
 
         self.notebook.add(self.onglet_accueil, text="🏠 Accueil")
         self.notebook.add(self.onglet_chambres, text="🛏️ Chambres")
@@ -78,6 +79,7 @@ class AppChambresHotes:
         self.notebook.add(self.onglet_calendrier, text="📊 Calendrier")
         self.notebook.add(self.onglet_historique, text="📜 Historique")
         self.notebook.add(self.onglet_paiements, text="💰 Paiements")
+        self.notebook.add(self.onglet_chiffre, text="💰 CA par Chambre")
 
         # Barre de statut
         self.status = tk.Label(root, text="Prêt • Données SQLite (chambres.db) • Persistance automatique", bg="#5a4a32", fg="#fff8e7", font=("Segoe UI", 9), pady=6)
@@ -177,7 +179,7 @@ class AppChambresHotes:
         # Mise à jour des cartes
         self.stat_chambres_libres.label_val.config(text=str(libres))
         self.stat_reservations_actives.label_val.config(text=str(len(actives)))
-        self.stat_total_soldes.label_val.config(text=f"{total_soldes:,} €".replace(",", " "))
+        self.stat_total_soldes.label_val.config(text=f"{total_soldes:,} Ar".replace(",", " "))
 
         # Client du jour
         clients_aujourdhui = [r["nom_client"] for r in RESERVATIONS if r["date_debut"] <= aujourdhui <= r["date_fin"]]
@@ -189,7 +191,7 @@ class AppChambresHotes:
         aujourdhui_dt = datetime.strptime(aujourdhui, "%Y-%m-%d")
         for r in sorted(RESERVATIONS, key=lambda x: x["date_debut"]):
             solde = max(0, r["montant_total"] - r["montant_paye"])
-            self.table_accueil.insert("", "end", values=(r["nom_client"], f"Chambre {r['chambre_num']}", f"{r['date_debut']} → {r['date_fin']}", f"{solde:,} €".replace(",", " ")))
+            self.table_accueil.insert("", "end", values=(r["nom_client"], f"Chambre {r['chambre_num']}", f"{r['date_debut']} → {r['date_fin']}", f"{solde:,} Ar".replace(",", " ")))
 
         # Table dernières réservations
         for item in self.table_dernieres.get_children():
@@ -247,7 +249,7 @@ class AppChambresHotes:
         self.entry_chambre_type.pack(anchor="w", padx=10, pady=2)
         self.entry_chambre_type.current(1)
 
-        tk.Label(form_chambre, text="Prix / nuit (€) :", bg="#fff8e7", font=("Segoe UI", 9)).pack(anchor="w", padx=10, pady=(8, 2))
+        tk.Label(form_chambre, text="Prix / nuit (Ar) :", bg="#fff8e7", font=("Segoe UI", 9)).pack(anchor="w", padx=10, pady=(8, 2))
         self.entry_chambre_prix = tk.Entry(form_chambre, font=("Segoe UI", 10), width=15)
         self.entry_chambre_prix.pack(anchor="w", padx=10, pady=2)
         self.entry_chambre_prix.insert(0, "100")
@@ -314,8 +316,8 @@ class AppChambresHotes:
         self.entry_chambre_nom.insert(0, str(valeurs[1]))
         self.entry_chambre_type.set(str(valeurs[2]))
         self.entry_chambre_prix.delete(0, tk.END)
-        # Extraire le prix (sans le symbole €)
-        prix_str = str(valeurs[3]).replace(" €", "").replace("€", "").strip()
+        # Extraire le prix (sans le symbole Ar)
+        prix_str = str(valeurs[3]).replace(" Ar", "").replace("Ar", "").strip()
         self.entry_chambre_prix.insert(0, prix_str)
 
     def _modifier_chambre(self):
@@ -388,7 +390,7 @@ class AppChambresHotes:
         for ch in CHAMBRES:
             statut = "Occupée" if ch["numero"] in chambres_occupees else "Disponible"
             tag = "occupee" if ch["numero"] in chambres_occupees else "dispo"
-            self.table_chambres.insert("", "end", values=(ch["numero"], ch["nom"], ch["type"], f"{ch['prix_nuit']} €", statut), tags=(tag,))
+            self.table_chambres.insert("", "end", values=(ch["numero"], ch["nom"], ch["type"], f"{ch['prix_nuit']} Ar", statut), tags=(tag,))
         self.table_chambres.tag_configure("occupee", background="#ffc7c7", foreground="#7a1a1a")
         self.table_chambres.tag_configure("dispo", background="#c7ffc7", foreground="#1a7a1a")
 
@@ -431,12 +433,12 @@ class AppChambresHotes:
         self.entry_fin.grid(row=3, column=1, sticky="w", pady=6)
         self.entry_fin.insert(0, (datetime.now() + timedelta(days=3)).strftime("%Y-%m-%d"))
 
-        tk.Label(grid, text="Montant total (€) :", bg="#fff8e7", font=("Segoe UI", 10)).grid(row=4, column=0, sticky="e", pady=6)
+        tk.Label(grid, text="Montant total (Ar) :", bg="#fff8e7", font=("Segoe UI", 10)).grid(row=4, column=0, sticky="e", pady=6)
         self.entry_total = tk.Entry(grid, font=("Segoe UI", 10), width=20, state="readonly", readonlybackground="#fff8e7")
         self.entry_total.grid(row=4, column=1, sticky="w", pady=6)
         self.entry_total.insert(0, "300")
 
-        tk.Label(grid, text="Montant payé (€) :", bg="#fff8e7", font=("Segoe UI", 10)).grid(row=5, column=0, sticky="e", pady=6)
+        tk.Label(grid, text="Montant payé (Ar) :", bg="#fff8e7", font=("Segoe UI", 10)).grid(row=5, column=0, sticky="e", pady=6)
         self.entry_paye = tk.Entry(grid, font=("Segoe UI", 10), width=20)
         self.entry_paye.grid(row=5, column=1, sticky="w", pady=6)
         self.entry_paye.insert(0, "0")
@@ -731,9 +733,9 @@ class AppChambresHotes:
             self.table_historique.insert("", "end", values=(
                 r["id"], r["nom_client"], r["chambre_num"],
                 r["date_debut"], r["date_fin"], f"{duree} nuits",
-                f"{r['montant_total']:,} €".replace(",", " "),
-                f"{r['montant_paye']:,} €".replace(",", " "),
-                f"{solde:,} €".replace(",", " ")
+                f"{r['montant_total']:,} Ar".replace(",", " "),
+                f"{r['montant_paye']:,} Ar".replace(",", " "),
+                f"{solde:,} Ar".replace(",", " ")
             ))
 
     def _filtrer_historique(self):
@@ -752,9 +754,9 @@ class AppChambresHotes:
                 self.table_historique.insert("", "end", values=(
                     r["id"], r["nom_client"], r["chambre_num"],
                     r["date_debut"], r["date_fin"], f"{duree} nuits",
-                    f"{r['montant_total']:,} €".replace(",", " "),
-                    f"{r['montant_paye']:,} €".replace(",", " "),
-                    f"{solde:,} €".replace(",", " ")
+                    f"{r['montant_total']:,} Ar".replace(",", " "),
+                    f"{r['montant_paye']:,} Ar".replace(",", " "),
+                    f"{solde:,} Ar".replace(",", " ")
                 ))
 
     # ============================================================
@@ -807,9 +809,9 @@ class AppChambresHotes:
             self.table_soldes.insert("", "end", values=(
                 client,
                 data["nb_resa"],
-                f"{data['total_du']:,} €".replace(",", " "),
-                f"{data['total_paye']:,} €".replace(",", " "),
-                f"{solde:,} €".replace(",", " ")
+                f"{data['total_du']:,} Ar".replace(",", " "),
+                f"{data['total_paye']:,} Ar".replace(",", " "),
+                f"{solde:,} Ar".replace(",", " ")
             ))
 
         # Détail
@@ -817,9 +819,50 @@ class AppChambresHotes:
             solde = max(0, r["montant_total"] - r["montant_paye"])
             self.table_detail_soldes.insert("", "end", values=(
                 r["id"], r["nom_client"], r["chambre_num"], r["date_debut"], r["date_fin"],
-                f"{r['montant_total']:,} €".replace(",", " "),
-                f"{r['montant_paye']:,} €".replace(",", " "),
-                f"{solde:,} €".replace(",", " ")
+                f"{r['montant_total']:,} Ar".replace(",", " "),
+                f"{r['montant_paye']:,} Ar".replace(",", " "),
+                f"{solde:,} Ar".replace(",", " ")
+            ))
+
+    # ============================================================
+    # CHIFFRE D'AFFAIRES PAR CHAMBRE (MOIS EN COURS)
+    # ============================================================
+    def _creer_chiffre_affaires(self):
+        frame = tk.Frame(self.notebook, bg="#fff8e7")
+        frame.pack(fill="both", expand=True)
+
+        tk.Label(frame, text="Chiffre d'Affaires du Mois par Chambre", font=("Segoe UI", 20, "bold"), bg="#fff8e7", fg="#3a2a1a").pack(pady=(15, 20))
+
+        mois_actuel = datetime.now().strftime("%Y-%m")
+        tk.Label(frame, text=f"Mois : {mois_actuel}", bg="#fff8e7", fg="#5a4a32", font=("Segoe UI", 11, "bold")).pack(pady=(5, 15))
+
+        table_frame = tk.LabelFrame(frame, text="Chiffre d'affaires du mois", bg="#fff8e7", font=("Segoe UI", 11, "bold"), fg="#5a4a32")
+        table_frame.pack(fill="both", expand=True, padx=20, pady=10)
+
+        self.table_chiffre = ttk.Treeview(table_frame, columns=("num", "nom", "ca_mois", "nb_resa_mois"), show="headings", height=12)
+        for col in ("num", "nom", "ca_mois", "nb_resa_mois"):
+            self.table_chiffre.heading(col, text=col.replace("_", " ").capitalize())
+            self.table_chiffre.column(col, width=180, anchor="center")
+        self.table_chiffre.pack(fill="both", expand=True, padx=10, pady=10)
+
+        return frame
+
+    def _actualiser_chiffre(self):
+        mois_actuel = datetime.now().strftime("%Y-%m")
+        for item in self.table_chiffre.get_children():
+            self.table_chiffre.delete(item)
+        for ch in CHAMBRES:
+            ca = 0
+            nb = 0
+            for r in RESERVATIONS:
+                if r["chambre_num"] == ch["numero"] and r["date_debut"][:7] == mois_actuel:
+                    ca += r["montant_total"]
+                    nb += 1
+            self.table_chiffre.insert("", "end", values=(
+                ch["numero"],
+                ch["nom"],
+                f"{ca:,} Ar".replace(",", " "),
+                nb
             ))
 
     # ============================================================
@@ -833,13 +876,14 @@ class AppChambresHotes:
             solde = max(0, r["montant_total"] - r["montant_paye"])
             self.table_reservations.insert("", "end", values=(
                 r["id"], r["nom_client"], r["chambre_num"], r["date_debut"], r["date_fin"],
-                f"{r['montant_total']:,} €".replace(",", " "), f"{r['montant_paye']:,} €".replace(",", " "),
-                f"{solde:,} €".replace(",", " ")
+                f"{r['montant_total']:,} Ar".replace(",", " "), f"{r['montant_paye']:,} Ar".replace(",", " "),
+                f"{solde:,} Ar".replace(",", " ")
             ))
         self._afficher_mois()
         self._actualiser_historique()
         self._actualiser_paiements()
-        self.status.config(text=f"Actualisé • {len(RESERVATIONS)} réservation(s) • Données en mémoire • {self.date_aujourd_hui}")
+        self._actualiser_chiffre()
+        self.status.config(text=f"Actualisé • {len(RESERVATIONS)} réservation(s) • Données SQLite (chambres.db) • {self.date_aujourd_hui}")
 
     # ============================================================
     # RÉINITIALISER
