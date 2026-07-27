@@ -12,6 +12,25 @@ from datetime import datetime, timedelta
 from collections import defaultdict
 
 # ============================================================
+# CONVERSION DE FORMAT DE DATE
+# ============================================================
+# En base et en interne (comparaisons, tris, calendrier), les dates
+# restent au format AAAA-MM-JJ (ISO, triable lexicographiquement).
+# À l'écran (saisie et tableaux), elles sont affichées en JJ/MM/AAAA.
+
+def format_date_affichage(date_iso):
+    """Convertit une date AAAA-MM-JJ (stockage) en JJ/MM/AAAA (affichage)."""
+    try:
+        return datetime.strptime(date_iso, "%Y-%m-%d").strftime("%d/%m/%Y")
+    except (ValueError, TypeError):
+        return date_iso
+
+def parser_date_affichage(date_str):
+    """Convertit une date JJ/MM/AAAA (saisie utilisateur) en AAAA-MM-JJ (stockage).
+    Lève ValueError si le format est invalide."""
+    return datetime.strptime(date_str.strip(), "%d/%m/%Y").strftime("%Y-%m-%d")
+
+# ============================================================
 # DONNÉES EN MÉMOIRE
 # ============================================================
 
@@ -55,7 +74,7 @@ class AppChambresHotes:
         style.configure("TLabelframe.Label", background="#fff8e7", font=("Segoe UI", 11, "bold"), foreground="#5a4a32")
 
         # Variables
-        self.date_aujourd_hui = datetime.now().strftime("%d-%m-%Y")
+        self.date_aujourd_hui = datetime.now().strftime("%Y-%m-%d")
 
         # Menu
         self._creer_menu()
@@ -170,8 +189,8 @@ class AppChambresHotes:
         libres = len(CHAMBRES) - len(chambres_occupees_aujourdhui)
 
         # Réservations actives (en cours ou à venir)
-        aujourdhui_dt = datetime.strptime(aujourdhui, "%d-%m-%Y")
-        actives = [r for r in RESERVATIONS if datetime.strptime(r["date_fin"], "%d-%m-%Y") >= aujourdhui_dt]
+        aujourdhui_dt = datetime.strptime(aujourdhui, "%Y-%m-%d")
+        actives = [r for r in RESERVATIONS if datetime.strptime(r["date_fin"], "%Y-%m-%d") >= aujourdhui_dt]
 
         # Solde total
         total_soldes = sum(max(0, r["montant_total"] - r["montant_paye"]) for r in RESERVATIONS)
@@ -188,16 +207,16 @@ class AppChambresHotes:
         # Table accueil
         for item in self.table_accueil.get_children():
             self.table_accueil.delete(item)
-        aujourdhui_dt = datetime.strptime(aujourdhui, "%d-%m-%Y")
+        aujourdhui_dt = datetime.strptime(aujourdhui, "%Y-%m-%d")
         for r in sorted(RESERVATIONS, key=lambda x: x["date_debut"]):
             solde = max(0, r["montant_total"] - r["montant_paye"])
-            self.table_accueil.insert("", "end", values=(r["nom_client"], f"Chambre {r['chambre_num']}", f"{r['date_debut']} → {r['date_fin']}", f"{solde:,} Ar".replace(",", " ")))
+            self.table_accueil.insert("", "end", values=(r["nom_client"], f"Chambre {r['chambre_num']}", f"{format_date_affichage(r['date_debut'])} → {format_date_affichage(r['date_fin'])}", f"{solde:,} Ar".replace(",", " ")))
 
         # Table dernières réservations
         for item in self.table_dernieres.get_children():
             self.table_dernieres.delete(item)
         for r in sorted(RESERVATIONS, key=lambda x: x["date_debut"], reverse=True)[:5]:
-            self.table_dernieres.insert("", "end", values=(r["id"], r["nom_client"], r["chambre_num"], r["date_debut"], r["date_fin"]))
+            self.table_dernieres.insert("", "end", values=(r["id"], r["nom_client"], r["chambre_num"], format_date_affichage(r["date_debut"]), format_date_affichage(r["date_fin"])))
 
     # ============================================================
     # CHAMBRES
@@ -423,15 +442,15 @@ class AppChambresHotes:
         self.combo_chambre.grid(row=1, column=1, sticky="w", pady=6)
         self.combo_chambre.current(0)
 
-        tk.Label(grid, text="Date début (JJ-MM-AAAA) :", bg="#fff8e7", font=("Segoe UI", 10)).grid(row=2, column=0, sticky="e", pady=6)
+        tk.Label(grid, text="Date début (JJ/MM/AAAA) :", bg="#fff8e7", font=("Segoe UI", 10)).grid(row=2, column=0, sticky="e", pady=6)
         self.entry_debut = tk.Entry(grid, font=("Segoe UI", 10), width=20)
         self.entry_debut.grid(row=2, column=1, sticky="w", pady=6)
-        self.entry_debut.insert(0, datetime.now().strftime("%d-%m-%Y"))
+        self.entry_debut.insert(0, datetime.now().strftime("%d/%m/%Y"))
 
-        tk.Label(grid, text="Date fin (JJ-MM-AAAA) :", bg="#fff8e7", font=("Segoe UI", 10)).grid(row=3, column=0, sticky="e", pady=6)
+        tk.Label(grid, text="Date fin (JJ/MM/AAAA) :", bg="#fff8e7", font=("Segoe UI", 10)).grid(row=3, column=0, sticky="e", pady=6)
         self.entry_fin = tk.Entry(grid, font=("Segoe UI", 10), width=20)
         self.entry_fin.grid(row=3, column=1, sticky="w", pady=6)
-        self.entry_fin.insert(0, (datetime.now() + timedelta(days=3)).strftime("%d-%m-%Y"))
+        self.entry_fin.insert(0, (datetime.now() + timedelta(days=3)).strftime("%d/%m/%Y"))
 
         tk.Label(grid, text="Montant total (Ar) :", bg="#fff8e7", font=("Segoe UI", 10)).grid(row=4, column=0, sticky="e", pady=6)
         self.entry_total = tk.Entry(grid, font=("Segoe UI", 10), width=20, state="readonly", readonlybackground="#fff8e7")
@@ -478,8 +497,8 @@ class AppChambresHotes:
             return
         try:
             chambre_num = int(chambre_str.split()[1])
-            debut_dt = datetime.strptime(debut_str, "%d-%m-%Y")
-            fin_dt = datetime.strptime(fin_str, "%d-%m-%Y")
+            debut_dt = datetime.strptime(debut_str, "%d/%m/%Y")
+            fin_dt = datetime.strptime(fin_str, "%d/%m/%Y")
             duree = (fin_dt - debut_dt).days
             if duree <= 0:
                 duree = 1  # au moins 1 nuit
@@ -523,12 +542,12 @@ class AppChambresHotes:
             messagebox.showerror("Erreur", "Chambre non reconnue.")
             return
 
-        # Vérifier format date basique
+        # Vérifier le format de date (saisie JJ/MM/AAAA) et convertir vers le format de stockage AAAA-MM-JJ
         try:
-            datetime.strptime(debut, "%d-%m-%Y")
-            datetime.strptime(fin, "%d-%m-%Y")
+            debut_iso = parser_date_affichage(debut)
+            fin_iso = parser_date_affichage(fin)
         except ValueError:
-            messagebox.showerror("Erreur", "Les dates doivent être au format JJ-MM-AAAA.")
+            messagebox.showerror("Erreur", "Les dates doivent être au format JJ/MM/AAAA.")
             return
 
         # Vérifier que le montant payé ne dépasse pas le total
@@ -540,8 +559,8 @@ class AppChambresHotes:
             "id": next_id,
             "nom_client": nom,
             "chambre_num": chambre_num,
-            "date_debut": debut,
-            "date_fin": fin,
+            "date_debut": debut_iso,
+            "date_fin": fin_iso,
             "montant_total": montant_total,
             "montant_paye": montant_paye
         }
@@ -643,10 +662,10 @@ class AppChambresHotes:
         for cell in self.cells.values():
             cell.config(text="", bg="#fff8e7", fg="#3a2a1a")
 
-        aujourdhui_str = datetime.now().strftime("%d-%m-%Y")
+        aujourdhui_str = datetime.now().strftime("%Y-%m-%d")
 
         for jour in range(1, nb_jours + 1):
-            date_str = f"{jour:02d}-{mois:02d}-{annee}"
+            date_str = f"{annee}-{mois:02d}-{jour:02d}"
             # Déterminer la cellule (ligne, colonne)
             # La première ligne est le 1er du mois
             # On commence après le header (row 1+)
@@ -726,13 +745,13 @@ class AppChambresHotes:
         for item in self.table_historique.get_children():
             self.table_historique.delete(item)
         for r in sorted(RESERVATIONS, key=lambda x: x["date_debut"], reverse=True):
-            debut_dt = datetime.strptime(r["date_debut"], "%d-%m-%Y")
-            fin_dt = datetime.strptime(r["date_fin"], "%d-%m-%Y")
+            debut_dt = datetime.strptime(r["date_debut"], "%Y-%m-%d")
+            fin_dt = datetime.strptime(r["date_fin"], "%Y-%m-%d")
             duree = (fin_dt - debut_dt).days
             solde = max(0, r["montant_total"] - r["montant_paye"])
             self.table_historique.insert("", "end", values=(
                 r["id"], r["nom_client"], r["chambre_num"],
-                r["date_debut"], r["date_fin"], f"{duree} nuits",
+                format_date_affichage(r["date_debut"]), format_date_affichage(r["date_fin"]), f"{duree} nuits",
                 f"{r['montant_total']:,} Ar".replace(",", " "),
                 f"{r['montant_paye']:,} Ar".replace(",", " "),
                 f"{solde:,} Ar".replace(",", " ")
@@ -747,13 +766,13 @@ class AppChambresHotes:
             ok_client = not filtre_client or filtre_client in r["nom_client"].lower()
             ok_chambre = not filtre_chambre or filtre_chambre == str(r["chambre_num"])
             if ok_client and ok_chambre:
-                debut_dt = datetime.strptime(r["date_debut"], "%d-%m-%Y")
-                fin_dt = datetime.strptime(r["date_fin"], "%d-%m-%Y")
+                debut_dt = datetime.strptime(r["date_debut"], "%Y-%m-%d")
+                fin_dt = datetime.strptime(r["date_fin"], "%Y-%m-%d")
                 duree = (fin_dt - debut_dt).days
                 solde = max(0, r["montant_total"] - r["montant_paye"])
                 self.table_historique.insert("", "end", values=(
                     r["id"], r["nom_client"], r["chambre_num"],
-                    r["date_debut"], r["date_fin"], f"{duree} nuits",
+                    format_date_affichage(r["date_debut"]), format_date_affichage(r["date_fin"]), f"{duree} nuits",
                     f"{r['montant_total']:,} Ar".replace(",", " "),
                     f"{r['montant_paye']:,} Ar".replace(",", " "),
                     f"{solde:,} Ar".replace(",", " ")
@@ -818,7 +837,7 @@ class AppChambresHotes:
         for r in sorted(RESERVATIONS, key=lambda x: x["nom_client"]):
             solde = max(0, r["montant_total"] - r["montant_paye"])
             self.table_detail_soldes.insert("", "end", values=(
-                r["id"], r["nom_client"], r["chambre_num"], r["date_debut"], r["date_fin"],
+                r["id"], r["nom_client"], r["chambre_num"], format_date_affichage(r["date_debut"]), format_date_affichage(r["date_fin"]),
                 f"{r['montant_total']:,} Ar".replace(",", " "),
                 f"{r['montant_paye']:,} Ar".replace(",", " "),
                 f"{solde:,} Ar".replace(",", " ")
@@ -833,7 +852,7 @@ class AppChambresHotes:
 
         tk.Label(frame, text="Chiffre d'Affaires du Mois par Chambre", font=("Segoe UI", 20, "bold"), bg="#fff8e7", fg="#3a2a1a").pack(pady=(15, 20))
 
-        mois_actuel = datetime.now().strftime("%m-%Y")
+        mois_actuel = datetime.now().strftime("%Y-%m")
         tk.Label(frame, text=f"Mois : {mois_actuel}", bg="#fff8e7", fg="#5a4a32", font=("Segoe UI", 11, "bold")).pack(pady=(5, 15))
 
         table_frame = tk.LabelFrame(frame, text="Chiffre d'affaires du mois", bg="#fff8e7", font=("Segoe UI", 11, "bold"), fg="#5a4a32")
@@ -848,7 +867,7 @@ class AppChambresHotes:
         return frame
 
     def _actualiser_chiffre(self):
-        mois_actuel = datetime.now().strftime("%m-%Y")
+        mois_actuel = datetime.now().strftime("%Y-%m")
         for item in self.table_chiffre.get_children():
             self.table_chiffre.delete(item)
         for ch in CHAMBRES:
@@ -875,7 +894,7 @@ class AppChambresHotes:
         for r in sorted(RESERVATIONS, key=lambda x: x["date_debut"], reverse=True):
             solde = max(0, r["montant_total"] - r["montant_paye"])
             self.table_reservations.insert("", "end", values=(
-                r["id"], r["nom_client"], r["chambre_num"], r["date_debut"], r["date_fin"],
+                r["id"], r["nom_client"], r["chambre_num"], format_date_affichage(r["date_debut"]), format_date_affichage(r["date_fin"]),
                 f"{r['montant_total']:,} Ar".replace(",", " "), f"{r['montant_paye']:,} Ar".replace(",", " "),
                 f"{solde:,} Ar".replace(",", " ")
             ))
