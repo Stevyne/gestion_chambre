@@ -1060,25 +1060,50 @@ class AppChambresHotes:
 
     def _init_db(self):
         import sqlite3
-        conn = sqlite3.connect(self._get_db_path())
-        cursor = conn.cursor()
-        cursor.execute('CREATE TABLE IF NOT EXISTS chambres (numero INTEGER PRIMARY KEY, nom TEXT, type TEXT, prix_nuit REAL)')
-        cursor.execute('CREATE TABLE IF NOT EXISTS reservations (id INTEGER PRIMARY KEY AUTOINCREMENT, nom_client TEXT, chambre_num INTEGER, date_debut TEXT, date_fin TEXT, montant_total REAL, montant_paye REAL)')
-        conn.commit()
-        conn.close()
+        conn = None
+        try:
+            conn = sqlite3.connect(self._get_db_path())
+            cursor = conn.cursor()
+            cursor.execute('CREATE TABLE IF NOT EXISTS chambres (numero INTEGER PRIMARY KEY, nom TEXT, type TEXT, prix_nuit REAL)')
+            cursor.execute('CREATE TABLE IF NOT EXISTS reservations (id INTEGER PRIMARY KEY AUTOINCREMENT, nom_client TEXT, chambre_num INTEGER, date_debut TEXT, date_fin TEXT, montant_total REAL, montant_paye REAL)')
+            conn.commit()
+        except sqlite3.Error as e:
+            messagebox.showerror(
+                "Erreur de base de données",
+                f"Impossible d'initialiser chambres.db.\nDétail : {e}\n\n"
+                "Les données ne pourront pas être sauvegardées tant que ce problème n'est pas résolu."
+            )
+        finally:
+            if conn is not None:
+                conn.close()
 
     def _sauvegarder_donnees(self):
         import sqlite3
-        conn = sqlite3.connect(self._get_db_path())
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM chambres")
-        for ch in CHAMBRES:
-            cursor.execute("INSERT INTO chambres VALUES (?, ?, ?, ?)", (ch["numero"], ch["nom"], ch["type"], ch["prix_nuit"]))
-        cursor.execute("DELETE FROM reservations")
-        for r in RESERVATIONS:
-            cursor.execute("INSERT INTO reservations (id, nom_client, chambre_num, date_debut, date_fin, montant_total, montant_paye) VALUES (?, ?, ?, ?, ?, ?, ?)", (r["id"], r["nom_client"], r["chambre_num"], r["date_debut"], r["date_fin"], r["montant_total"], r["montant_paye"]))
-        conn.commit()
-        conn.close()
+        conn = None
+        try:
+            conn = sqlite3.connect(self._get_db_path())
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM chambres")
+            for ch in CHAMBRES:
+                cursor.execute("INSERT INTO chambres VALUES (?, ?, ?, ?)", (ch["numero"], ch["nom"], ch["type"], ch["prix_nuit"]))
+            cursor.execute("DELETE FROM reservations")
+            for r in RESERVATIONS:
+                cursor.execute("INSERT INTO reservations (id, nom_client, chambre_num, date_debut, date_fin, montant_total, montant_paye) VALUES (?, ?, ?, ?, ?, ?, ?)", (r["id"], r["nom_client"], r["chambre_num"], r["date_debut"], r["date_fin"], r["montant_total"], r["montant_paye"]))
+            conn.commit()
+        except sqlite3.Error as e:
+            if conn is not None:
+                conn.rollback()
+            messagebox.showerror(
+                "Erreur de sauvegarde",
+                "Impossible d'enregistrer les données dans chambres.db.\n"
+                f"Détail : {e}\n\n"
+                "Vos modifications restent visibles dans l'application, mais ne seront pas "
+                "conservées si vous fermez le programme tant que ce problème n'est pas résolu "
+                "(vérifiez par exemple l'espace disque ou les droits d'écriture du dossier)."
+            )
+        finally:
+            if conn is not None:
+                conn.close()
 
     def _charger_donnees(self):
         import sqlite3, os, sys
@@ -1109,8 +1134,13 @@ class AppChambresHotes:
             conn.close()
             if hasattr(self, 'combo_chambre'):
                 self.combo_chambre.config(values=[f"Chambre {c['numero']} - {c['nom']}" for c in CHAMBRES])
-        except Exception as e:
-            print(f"Erreur lors du chargement : {e}")
+        except sqlite3.Error as e:
+            messagebox.showwarning(
+                "Erreur de chargement",
+                f"Impossible de charger chambres.db.\nDétail : {e}\n\n"
+                "L'application démarre avec les données par défaut en mémoire. "
+                "Vos anciennes données ne seront pas modifiées tant que vous n'enregistrez rien."
+            )
 
     def _apropos(self):
         messagebox.showinfo("À propos", "Application de gestion des chambres d'hôtes\nDéveloppée avec Python et Tkinter\nStockage des données en mémoire (RAM)\nPas de base de données requise\n© 2026")
