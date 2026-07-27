@@ -30,6 +30,11 @@ def parser_date_affichage(date_str):
     Lève ValueError si le format est invalide."""
     return datetime.strptime(date_str.strip(), "%d/%m/%Y").strftime("%Y-%m-%d")
 
+def reservation_chevauche(debut_iso, fin_iso, autre_debut_iso, autre_fin_iso):
+    """Indique si deux plages [debut, fin] (dates ISO AAAA-MM-JJ, bornes incluses,
+    comme partout ailleurs dans l'appli) se chevauchent."""
+    return debut_iso <= autre_fin_iso and autre_debut_iso <= fin_iso
+
 # ============================================================
 # DONNÉES EN MÉMOIRE
 # ============================================================
@@ -377,6 +382,18 @@ class AppChambresHotes:
         except ValueError:
             messagebox.showerror("Erreur", "Aucun numéro valide dans le formulaire. Cliquez d'abord sur une chambre dans la liste.")
             return
+
+        # Empêcher la suppression si des réservations (passées, en cours ou futures) référencent cette chambre
+        reservations_liees = [r for r in RESERVATIONS if r["chambre_num"] == num]
+        if reservations_liees:
+            messagebox.showerror(
+                "Suppression impossible",
+                f"La chambre {num} est référencée par {len(reservations_liees)} réservation(s) "
+                "(historique compris) et ne peut pas être supprimée.\n"
+                "Vous pouvez toutefois la modifier (nom, type, prix) si nécessaire."
+            )
+            return
+
         if messagebox.askyesno("Confirmation", f"Voulez-vous vraiment supprimer la chambre {num} ?"):
             chambre_a_supprimer = None
             for c in CHAMBRES:
@@ -558,6 +575,22 @@ class AppChambresHotes:
         except ValueError:
             messagebox.showerror("Erreur", "Les dates doivent être au format JJ/MM/AAAA.")
             return
+
+        # Vérifier que la date de fin n'est pas avant la date de début
+        if fin_iso < debut_iso:
+            messagebox.showerror("Erreur", "La date de fin ne peut pas être antérieure à la date de début.")
+            return
+
+        # Vérifier qu'il n'y a pas de chevauchement avec une réservation existante sur la même chambre
+        for r in RESERVATIONS:
+            if r["chambre_num"] == chambre_num and reservation_chevauche(debut_iso, fin_iso, r["date_debut"], r["date_fin"]):
+                messagebox.showerror(
+                    "Chambre déjà réservée",
+                    f"La chambre {chambre_num} est déjà réservée par {r['nom_client']} "
+                    f"du {format_date_affichage(r['date_debut'])} au {format_date_affichage(r['date_fin'])}.\n"
+                    "Veuillez choisir une autre chambre ou d'autres dates."
+                )
+                return
 
         # Vérifier que le montant payé ne dépasse pas le total
         if montant_paye > montant_total:
