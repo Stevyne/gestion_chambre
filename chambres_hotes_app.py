@@ -59,8 +59,8 @@ class AppChambresHotes:
     def __init__(self, root):
         self.root = root
         self.root.title("🏨 Gestion des Chambres d'Hôtes")
-        self.root.geometry("1100x720")
-        self.root.minsize(900, 600)
+        self.root.geometry("1100x780")
+        self.root.minsize(900, 680)
         self.root.configure(bg="#f5f0e6")
 
         # Style personnalisé
@@ -458,9 +458,13 @@ class AppChambresHotes:
         self.entry_total.insert(0, "300")
 
         tk.Label(grid, text="Montant payé (Ar) :", bg="#fff8e7", font=("Segoe UI", 10)).grid(row=5, column=0, sticky="e", pady=6)
-        self.entry_paye = tk.Entry(grid, font=("Segoe UI", 10), width=20)
-        self.entry_paye.grid(row=5, column=1, sticky="w", pady=6)
+        ligne_paye = tk.Frame(grid, bg="#fff8e7")
+        ligne_paye.grid(row=5, column=1, sticky="w", pady=6)
+        self.entry_paye = tk.Entry(ligne_paye, font=("Segoe UI", 10), width=14)
+        self.entry_paye.pack(side="left")
         self.entry_paye.insert(0, "0")
+        btn_paye_total = tk.Button(ligne_paye, text="✅ Payé intégralement", command=self._marquer_paye_formulaire, bg="#6aaa64", fg="#ffffff", font=("Segoe UI", 8, "bold"), padx=4, pady=2, relief="raised", bd=2)
+        btn_paye_total.pack(side="left", padx=(8, 0))
 
         # Lier le calcul automatique
         self.combo_chambre.bind("<<ComboboxSelected>>", self._calculer_montant_automatique)
@@ -515,6 +519,11 @@ class AppChambresHotes:
         self.entry_total.delete(0, tk.END)
         self.entry_total.insert(0, str(total))
         self.entry_total.config(state="readonly", readonlybackground="#fff8e7")
+
+    def _marquer_paye_formulaire(self):
+        montant_total_str = self.entry_total.get().strip()
+        self.entry_paye.delete(0, tk.END)
+        self.entry_paye.insert(0, montant_total_str)
 
     def _ajouter_reservation(self):
         global next_id
@@ -791,21 +800,46 @@ class AppChambresHotes:
         resume = tk.LabelFrame(frame, text="Résumé des soldes par client", bg="#fff8e7", font=("Segoe UI", 12, "bold"), fg="#5a4a32")
         resume.pack(fill="x", padx=20, pady=10)
 
-        self.table_soldes = ttk.Treeview(resume, columns=("client", "reservations", "total_du", "total_paye", "solde_restant"), show="headings", height=8)
+        self.table_soldes = ttk.Treeview(resume, columns=("client", "reservations", "total_du", "total_paye", "solde_restant"), show="headings", height=5)
         for col in ("client", "reservations", "total_du", "total_paye", "solde_restant"):
             self.table_soldes.heading(col, text=col.replace("_", " ").capitalize())
             self.table_soldes.column(col, width=140, anchor="center")
         self.table_soldes.pack(fill="x", padx=10, pady=10)
 
+        # Mise à jour d'un paiement (placé ici, avant le tableau extensible, pour rester
+        # toujours visible même sur un écran ou une fenêtre de taille réduite)
+        maj = tk.LabelFrame(frame, text="Mettre à jour un paiement", bg="#fff8e7", font=("Segoe UI", 11, "bold"), fg="#5a4a32")
+        maj.pack(fill="x", padx=20, pady=(0, 10))
+
+        ligne = tk.Frame(maj, bg="#fff8e7")
+        ligne.pack(padx=10, pady=(10, 2), fill="x")
+
+        tk.Label(ligne, text="Réservation (ID) :", bg="#fff8e7", font=("Segoe UI", 9)).pack(side="left", padx=(0, 5))
+        self.entry_paiement_id = tk.Entry(ligne, font=("Segoe UI", 10), width=8)
+        self.entry_paiement_id.pack(side="left", padx=(0, 15))
+
+        tk.Label(ligne, text="Montant payé (Ar) :", bg="#fff8e7", font=("Segoe UI", 9)).pack(side="left", padx=(0, 5))
+        self.entry_paiement_montant = tk.Entry(ligne, font=("Segoe UI", 10), width=12)
+        self.entry_paiement_montant.pack(side="left", padx=(0, 15))
+
+        btn_enregistrer_paiement = tk.Button(ligne, text="💾 Enregistrer le paiement", command=self._enregistrer_paiement, bg="#4a90e2", fg="#ffffff", font=("Segoe UI", 9, "bold"), padx=8, pady=4, relief="raised", bd=2)
+        btn_enregistrer_paiement.pack(side="left", padx=(0, 10))
+
+        btn_marquer_paye = tk.Button(ligne, text="✅ Marquer comme payé (solde total)", command=self._marquer_comme_paye, bg="#6aaa64", fg="#ffffff", font=("Segoe UI", 9, "bold"), padx=8, pady=4, relief="raised", bd=2)
+        btn_marquer_paye.pack(side="left")
+
+        tk.Label(maj, text="Astuce : cliquez sur une ligne du tableau ci-dessous pour pré-remplir l'ID et le montant payé actuel.", bg="#fff8e7", fg="#7a6a52", font=("Segoe UI", 8, "italic")).pack(anchor="w", padx=10, pady=(2, 10))
+
         # Détail des réservations avec solde
         detail = tk.LabelFrame(frame, text="Détail des réservations avec solde", bg="#fff8e7", font=("Segoe UI", 11, "bold"), fg="#5a4a32")
-        detail.pack(fill="both", expand=True, padx=20, pady=10)
+        detail.pack(fill="both", expand=True, padx=20, pady=(0, 15))
 
-        self.table_detail_soldes = ttk.Treeview(detail, columns=("id", "client", "chambre", "debut", "fin", "montant_total", "montant_paye", "solde"), show="headings", height=10)
+        self.table_detail_soldes = ttk.Treeview(detail, columns=("id", "client", "chambre", "debut", "fin", "montant_total", "montant_paye", "solde"), show="headings", height=6)
         for col in ("id", "client", "chambre", "debut", "fin", "montant_total", "montant_paye", "solde"):
             self.table_detail_soldes.heading(col, text=col.replace("_", " ").capitalize())
             self.table_detail_soldes.column(col, width=110, anchor="center")
         self.table_detail_soldes.pack(fill="both", expand=True, padx=10, pady=10)
+        self.table_detail_soldes.bind("<<TreeviewSelect>>", self._charger_paiement_selectionne)
 
         return frame
 
@@ -842,6 +876,69 @@ class AppChambresHotes:
                 f"{r['montant_paye']:,} Ar".replace(",", " "),
                 f"{solde:,} Ar".replace(",", " ")
             ))
+
+    def _charger_paiement_selectionne(self, event=None):
+        selection = self.table_detail_soldes.selection()
+        if not selection:
+            return
+        valeurs = self.table_detail_soldes.item(selection[0])["values"]
+        # Colonnes : id, client, chambre, debut, fin, montant_total, montant_paye, solde
+        resa_id = valeurs[0]
+        montant_paye_str = str(valeurs[6]).replace("Ar", "").replace(" ", "").strip()
+        self.entry_paiement_id.delete(0, tk.END)
+        self.entry_paiement_id.insert(0, str(resa_id))
+        self.entry_paiement_montant.delete(0, tk.END)
+        self.entry_paiement_montant.insert(0, montant_paye_str)
+
+    def _enregistrer_paiement(self):
+        try:
+            resa_id = int(self.entry_paiement_id.get().strip())
+        except ValueError:
+            messagebox.showerror("Erreur", "Veuillez indiquer un ID de réservation valide.")
+            return
+
+        try:
+            nouveau_montant = float(self.entry_paiement_montant.get().strip())
+        except ValueError:
+            messagebox.showerror("Erreur", "Le montant payé doit être un nombre.")
+            return
+
+        reservation = next((r for r in RESERVATIONS if r["id"] == resa_id), None)
+        if reservation is None:
+            messagebox.showerror("Erreur", f"Aucune réservation avec l'ID {resa_id}.")
+            return
+
+        if nouveau_montant < 0:
+            messagebox.showerror("Erreur", "Le montant payé ne peut pas être négatif.")
+            return
+
+        if nouveau_montant > reservation["montant_total"]:
+            messagebox.showerror("Erreur", "Le montant payé ne peut pas dépasser le montant total de la réservation.")
+            return
+
+        reservation["montant_paye"] = nouveau_montant
+        messagebox.showinfo("Succès", f"Paiement mis à jour pour la réservation #{resa_id} ({reservation['nom_client']}).")
+        self._actualiser_toutes_les_vues()
+        self._sauvegarder_donnees()
+
+    def _marquer_comme_paye(self):
+        try:
+            resa_id = int(self.entry_paiement_id.get().strip())
+        except ValueError:
+            messagebox.showerror("Erreur", "Veuillez indiquer un ID de réservation valide.")
+            return
+
+        reservation = next((r for r in RESERVATIONS if r["id"] == resa_id), None)
+        if reservation is None:
+            messagebox.showerror("Erreur", f"Aucune réservation avec l'ID {resa_id}.")
+            return
+
+        reservation["montant_paye"] = reservation["montant_total"]
+        self.entry_paiement_montant.delete(0, tk.END)
+        self.entry_paiement_montant.insert(0, str(reservation["montant_total"]))
+        messagebox.showinfo("Succès", f"Réservation #{resa_id} ({reservation['nom_client']}) marquée comme intégralement payée.")
+        self._actualiser_toutes_les_vues()
+        self._sauvegarder_donnees()
 
     # ============================================================
     # CHIFFRE D'AFFAIRES PAR CHAMBRE (MOIS EN COURS)
