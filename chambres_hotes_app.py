@@ -435,6 +435,7 @@ class AppChambresHotes:
     # ============================================================
     def _creer_reservations(self):
         global next_id
+        self.id_reservation_en_edition = None
         frame = tk.Frame(self.notebook, bg="#fff8e7")
         frame.pack(fill="both", expand=True)
 
@@ -469,14 +470,27 @@ class AppChambresHotes:
         self.entry_fin.grid(row=3, column=1, sticky="w", pady=6)
         self.entry_fin.insert(0, (datetime.now() + timedelta(days=3)).strftime("%d/%m/%Y"))
 
-        tk.Label(grid, text="Montant total (Ar) :", bg="#fff8e7", font=("Segoe UI", 10)).grid(row=4, column=0, sticky="e", pady=6)
+        tk.Label(grid, text="Remise (%) :", bg="#fff8e7", font=("Segoe UI", 10)).grid(row=4, column=0, sticky="e", pady=6)
+        ligne_remise = tk.Frame(grid, bg="#fff8e7")
+        ligne_remise.grid(row=4, column=1, sticky="w", pady=6)
+        self.entry_remise = tk.Entry(ligne_remise, font=("Segoe UI", 10), width=8)
+        self.entry_remise.pack(side="left")
+        self.entry_remise.insert(0, "0")
+        for pct, label in ((10, "10%"), (20, "20%"), (30, "30%"), (50, "50%")):
+            tk.Button(
+                ligne_remise, text=label, bg="#d9c9a3", fg="#3a2a1a", font=("Segoe UI", 8, "bold"),
+                padx=4, pady=2, relief="raised", bd=2,
+                command=lambda p=pct: self._appliquer_remise_rapide(p)
+            ).pack(side="left", padx=(6, 0))
+
+        tk.Label(grid, text="Montant total (Ar) :", bg="#fff8e7", font=("Segoe UI", 10)).grid(row=5, column=0, sticky="e", pady=6)
         self.entry_total = tk.Entry(grid, font=("Segoe UI", 10), width=20, state="readonly", readonlybackground="#fff8e7")
-        self.entry_total.grid(row=4, column=1, sticky="w", pady=6)
+        self.entry_total.grid(row=5, column=1, sticky="w", pady=6)
         self.entry_total.insert(0, "300")
 
-        tk.Label(grid, text="Montant payé (Ar) :", bg="#fff8e7", font=("Segoe UI", 10)).grid(row=5, column=0, sticky="e", pady=6)
+        tk.Label(grid, text="Montant payé (Ar) :", bg="#fff8e7", font=("Segoe UI", 10)).grid(row=6, column=0, sticky="e", pady=6)
         ligne_paye = tk.Frame(grid, bg="#fff8e7")
-        ligne_paye.grid(row=5, column=1, sticky="w", pady=6)
+        ligne_paye.grid(row=6, column=1, sticky="w", pady=6)
         self.entry_paye = tk.Entry(ligne_paye, font=("Segoe UI", 10), width=14)
         self.entry_paye.pack(side="left")
         self.entry_paye.insert(0, "0")
@@ -487,22 +501,34 @@ class AppChambresHotes:
         self.combo_chambre.bind("<<ComboboxSelected>>", self._calculer_montant_automatique)
         self.entry_debut.bind("<KeyRelease>", self._calculer_montant_automatique)
         self.entry_fin.bind("<KeyRelease>", self._calculer_montant_automatique)
+        self.entry_remise.bind("<KeyRelease>", self._calculer_montant_automatique)
 
-        # Bouton
+        # Indicateur de mode édition
+        self.label_mode_reservation = tk.Label(form, text="", bg="#fff8e7", fg="#c0392b", font=("Segoe UI", 9, "bold"))
+        self.label_mode_reservation.pack(pady=(0, 4))
+
+        # Boutons
         btn_frame = tk.Frame(form, bg="#fff8e7")
-        btn_frame.pack(pady=15)
-        btn_ajouter = tk.Button(btn_frame, text="✅ Enregistrer la réservation", command=self._ajouter_reservation, bg="#6aaa64", fg="#ffffff", font=("Segoe UI", 12, "bold"), padx=20, pady=8, relief="raised", bd=2)
-        btn_ajouter.pack()
+        btn_frame.pack(pady=(5, 15))
+        self.btn_enregistrer_reservation = tk.Button(btn_frame, text="✅ Enregistrer la réservation", command=self._enregistrer_reservation, bg="#6aaa64", fg="#ffffff", font=("Segoe UI", 11, "bold"), padx=14, pady=8, relief="raised", bd=2)
+        self.btn_enregistrer_reservation.pack(side="left", padx=5)
+        btn_nouvelle_resa = tk.Button(btn_frame, text="🆕 Nouvelle réservation", command=self._nouvelle_reservation_form, bg="#4a90e2", fg="#ffffff", font=("Segoe UI", 10, "bold"), padx=12, pady=8, relief="raised", bd=2)
+        btn_nouvelle_resa.pack(side="left", padx=5)
+        btn_supprimer_resa = tk.Button(btn_frame, text="🗑️ Supprimer la réservation", command=self._supprimer_reservation, bg="#c0392b", fg="#ffffff", font=("Segoe UI", 10, "bold"), padx=12, pady=8, relief="raised", bd=2)
+        btn_supprimer_resa.pack(side="left", padx=5)
 
         # Tableau des réservations en cours
         section_table = tk.LabelFrame(frame, text="Réservations enregistrées", bg="#fff8e7", font=("Segoe UI", 12, "bold"), fg="#5a4a32")
         section_table.pack(fill="both", expand=True, padx=30, pady=15)
+
+        tk.Label(section_table, text="Astuce : cliquez sur une ligne pour la charger dans le formulaire ci-dessus (modification ou suppression).", bg="#fff8e7", fg="#7a6a52", font=("Segoe UI", 8, "italic")).pack(anchor="w", padx=10, pady=(8, 0))
 
         self.table_reservations = ttk.Treeview(section_table, columns=("id", "nom", "chambre", "debut", "fin", "total", "paye", "solde"), show="headings", height=8)
         for col in ("id", "nom", "chambre", "debut", "fin", "total", "paye", "solde"):
             self.table_reservations.heading(col, text=col.capitalize())
             self.table_reservations.column(col, width=110, anchor="center")
         self.table_reservations.pack(fill="both", expand=True, padx=10, pady=10)
+        self.table_reservations.bind("<<TreeviewSelect>>", self._charger_reservation_selectionnee)
 
         return frame
 
@@ -531,18 +557,32 @@ class AppChambresHotes:
             if ch["numero"] == chambre_num:
                 prix_nuit = ch["prix_nuit"]
                 break
-        total = prix_nuit * duree
+        montant_brut = prix_nuit * duree
+
+        # Appliquer la remise (%) éventuelle, bornée entre 0 et 100
+        try:
+            remise = float(self.entry_remise.get().strip() or "0")
+        except ValueError:
+            remise = 0
+        remise = max(0.0, min(100.0, remise))
+
+        total = montant_brut * (1 - remise / 100)
         self.entry_total.config(state="normal")
         self.entry_total.delete(0, tk.END)
-        self.entry_total.insert(0, str(total))
+        self.entry_total.insert(0, f"{total:.0f}")
         self.entry_total.config(state="readonly", readonlybackground="#fff8e7")
+
+    def _appliquer_remise_rapide(self, pourcentage):
+        self.entry_remise.delete(0, tk.END)
+        self.entry_remise.insert(0, str(pourcentage))
+        self._calculer_montant_automatique()
 
     def _marquer_paye_formulaire(self):
         montant_total_str = self.entry_total.get().strip()
         self.entry_paye.delete(0, tk.END)
         self.entry_paye.insert(0, montant_total_str)
 
-    def _ajouter_reservation(self):
+    def _enregistrer_reservation(self):
         global next_id
         nom = self.entry_nom.get().strip()
         chambre_str = self.combo_chambre.get()
@@ -553,6 +593,15 @@ class AppChambresHotes:
             montant_paye = float(self.entry_paye.get().strip())
         except ValueError:
             messagebox.showerror("Erreur", "Le montant total et le montant payé doivent être des nombres.")
+            return
+
+        try:
+            remise = float(self.entry_remise.get().strip() or "0")
+        except ValueError:
+            messagebox.showerror("Erreur", "La remise doit être un nombre (par exemple 20 pour 20%).")
+            return
+        if remise < 0 or remise > 100:
+            messagebox.showerror("Erreur", "La remise doit être comprise entre 0 et 100.")
             return
 
         if not nom:
@@ -582,7 +631,10 @@ class AppChambresHotes:
             return
 
         # Vérifier qu'il n'y a pas de chevauchement avec une réservation existante sur la même chambre
+        # (on ignore la réservation elle-même si on est en train de la modifier)
         for r in RESERVATIONS:
+            if r["id"] == self.id_reservation_en_edition:
+                continue
             if r["chambre_num"] == chambre_num and reservation_chevauche(debut_iso, fin_iso, r["date_debut"], r["date_fin"]):
                 messagebox.showerror(
                     "Chambre déjà réservée",
@@ -597,21 +649,124 @@ class AppChambresHotes:
             messagebox.showerror("Erreur", "Le montant payé ne peut pas dépasser le montant total.")
             return
 
-        nouvelle_reservation = {
-            "id": next_id,
-            "nom_client": nom,
-            "chambre_num": chambre_num,
-            "date_debut": debut_iso,
-            "date_fin": fin_iso,
-            "montant_total": montant_total,
-            "montant_paye": montant_paye
-        }
-        RESERVATIONS.append(nouvelle_reservation)
-        next_id += 1
+        if self.id_reservation_en_edition is not None:
+            # Mode modification : mettre à jour la réservation existante
+            reservation = next((r for r in RESERVATIONS if r["id"] == self.id_reservation_en_edition), None)
+            if reservation is None:
+                messagebox.showerror("Erreur", "Cette réservation n'existe plus (elle a peut-être été supprimée entretemps).")
+                self._nouvelle_reservation_form()
+                return
+            reservation["nom_client"] = nom
+            reservation["chambre_num"] = chambre_num
+            reservation["date_debut"] = debut_iso
+            reservation["date_fin"] = fin_iso
+            reservation["montant_total"] = montant_total
+            reservation["montant_paye"] = montant_paye
+            reservation["remise_pourcentage"] = remise
+            messagebox.showinfo("Succès", f"Réservation #{reservation['id']} mise à jour pour {nom}.")
+            self._nouvelle_reservation_form()
+        else:
+            # Mode ajout : nouvelle réservation
+            nouvelle_reservation = {
+                "id": next_id,
+                "nom_client": nom,
+                "chambre_num": chambre_num,
+                "date_debut": debut_iso,
+                "date_fin": fin_iso,
+                "montant_total": montant_total,
+                "montant_paye": montant_paye,
+                "remise_pourcentage": remise
+            }
+            RESERVATIONS.append(nouvelle_reservation)
+            next_id += 1
+            messagebox.showinfo("Succès", f"Réservation enregistrée pour {nom} (Chambre {chambre_num}).")
 
-        messagebox.showinfo("Succès", f"Réservation enregistrée pour {nom} (Chambre {chambre_num}).")
         self._actualiser_toutes_les_vues()
         self._sauvegarder_donnees()
+
+    def _charger_reservation_selectionnee(self, event=None):
+        selection = self.table_reservations.selection()
+        if not selection:
+            return
+        valeurs = self.table_reservations.item(selection[0])["values"]
+        # Colonnes : id, nom, chambre, debut, fin, total, paye, solde
+        resa_id = int(valeurs[0])
+        reservation = next((r for r in RESERVATIONS if r["id"] == resa_id), None)
+        if reservation is None:
+            return
+
+        self.id_reservation_en_edition = resa_id
+
+        self.entry_nom.delete(0, tk.END)
+        self.entry_nom.insert(0, reservation["nom_client"])
+
+        for i, c in enumerate(CHAMBRES):
+            if c["numero"] == reservation["chambre_num"]:
+                self.combo_chambre.current(i)
+                break
+
+        self.entry_debut.delete(0, tk.END)
+        self.entry_debut.insert(0, format_date_affichage(reservation["date_debut"]))
+
+        self.entry_fin.delete(0, tk.END)
+        self.entry_fin.insert(0, format_date_affichage(reservation["date_fin"]))
+
+        self.entry_remise.delete(0, tk.END)
+        self.entry_remise.insert(0, str(reservation.get("remise_pourcentage", 0)))
+
+        self.entry_total.config(state="normal")
+        self.entry_total.delete(0, tk.END)
+        self.entry_total.insert(0, str(reservation["montant_total"]))
+        self.entry_total.config(state="readonly", readonlybackground="#fff8e7")
+
+        self.entry_paye.delete(0, tk.END)
+        self.entry_paye.insert(0, str(reservation["montant_paye"]))
+
+        self.btn_enregistrer_reservation.config(text="💾 Enregistrer les modifications", bg="#e67e22")
+        self.label_mode_reservation.config(text=f"✏️ Modification de la réservation #{resa_id} ({reservation['nom_client']}) — cliquez sur \"Nouvelle réservation\" pour annuler.")
+
+    def _nouvelle_reservation_form(self):
+        self.id_reservation_en_edition = None
+        self.label_mode_reservation.config(text="")
+        self.btn_enregistrer_reservation.config(text="✅ Enregistrer la réservation", bg="#6aaa64")
+
+        self.entry_nom.delete(0, tk.END)
+        self.entry_nom.insert(0, "Jean Dupont")
+        if CHAMBRES:
+            self.combo_chambre.current(0)
+        self.entry_debut.delete(0, tk.END)
+        self.entry_debut.insert(0, datetime.now().strftime("%d/%m/%Y"))
+        self.entry_fin.delete(0, tk.END)
+        self.entry_fin.insert(0, (datetime.now() + timedelta(days=3)).strftime("%d/%m/%Y"))
+        self.entry_remise.delete(0, tk.END)
+        self.entry_remise.insert(0, "0")
+        self.entry_paye.delete(0, tk.END)
+        self.entry_paye.insert(0, "0")
+        self._calculer_montant_automatique()
+
+        for item in self.table_reservations.selection():
+            self.table_reservations.selection_remove(item)
+
+    def _supprimer_reservation(self):
+        if self.id_reservation_en_edition is None:
+            messagebox.showinfo("Information", "Sélectionnez d'abord une réservation dans le tableau ci-dessous.")
+            return
+        reservation = next((r for r in RESERVATIONS if r["id"] == self.id_reservation_en_edition), None)
+        if reservation is None:
+            messagebox.showerror("Erreur", "Cette réservation n'existe plus.")
+            self._nouvelle_reservation_form()
+            return
+        if messagebox.askyesno(
+            "Confirmation",
+            f"Voulez-vous vraiment supprimer la réservation #{reservation['id']} de {reservation['nom_client']} "
+            f"(Chambre {reservation['chambre_num']}, du {format_date_affichage(reservation['date_debut'])} "
+            f"au {format_date_affichage(reservation['date_fin'])}) ?\n\nCette action est irréversible."
+        ):
+            RESERVATIONS.remove(reservation)
+            messagebox.showinfo("Succès", "Réservation supprimée.")
+            self._nouvelle_reservation_form()
+            self._actualiser_toutes_les_vues()
+            self._sauvegarder_donnees()
 
     # ============================================================
     # CALENDRIER
@@ -982,8 +1137,22 @@ class AppChambresHotes:
 
         tk.Label(frame, text="Chiffre d'Affaires du Mois par Chambre", font=("Segoe UI", 20, "bold"), bg="#fff8e7", fg="#3a2a1a").pack(pady=(15, 20))
 
-        mois_actuel = datetime.now().strftime("%Y-%m")
-        tk.Label(frame, text=f"Mois : {mois_actuel}", bg="#fff8e7", fg="#5a4a32", font=("Segoe UI", 11, "bold")).pack(pady=(5, 15))
+        self.mois_ca = datetime.now().strftime("%Y-%m")
+
+        controles = tk.Frame(frame, bg="#fff8e7")
+        controles.pack(pady=(5, 15))
+
+        btn_prec_ca = tk.Button(controles, text="◀ Mois précédent", command=self._mois_precedent_ca, bg="#e8dcc8", fg="#5a4a32", font=("Segoe UI", 9, "bold"))
+        btn_prec_ca.pack(side="left", padx=10)
+
+        self.label_mois_ca = tk.Label(controles, text=self.mois_ca, bg="#fff8e7", fg="#3a2a1a", font=("Segoe UI", 14, "bold"), width=15)
+        self.label_mois_ca.pack(side="left", padx=20)
+
+        btn_suiv_ca = tk.Button(controles, text="Mois suivant ▶", command=self._mois_suivant_ca, bg="#e8dcc8", fg="#5a4a32", font=("Segoe UI", 9, "bold"))
+        btn_suiv_ca.pack(side="left", padx=10)
+
+        btn_ce_mois_ca = tk.Button(controles, text="Mois en cours", command=self._mois_courant_ca, bg="#4a90e2", fg="#ffffff", font=("Segoe UI", 9, "bold"))
+        btn_ce_mois_ca.pack(side="left", padx=(20, 0))
 
         table_frame = tk.LabelFrame(frame, text="Chiffre d'affaires du mois", bg="#fff8e7", font=("Segoe UI", 11, "bold"), fg="#5a4a32")
         table_frame.pack(fill="both", expand=True, padx=20, pady=10)
@@ -996,15 +1165,39 @@ class AppChambresHotes:
 
         return frame
 
+    def _mois_precedent_ca(self):
+        annee, mois = map(int, self.mois_ca.split("-"))
+        mois -= 1
+        if mois == 0:
+            mois = 12
+            annee -= 1
+        self.mois_ca = f"{annee}-{mois:02d}"
+        self.label_mois_ca.config(text=self.mois_ca)
+        self._actualiser_chiffre()
+
+    def _mois_suivant_ca(self):
+        annee, mois = map(int, self.mois_ca.split("-"))
+        mois += 1
+        if mois == 13:
+            mois = 1
+            annee += 1
+        self.mois_ca = f"{annee}-{mois:02d}"
+        self.label_mois_ca.config(text=self.mois_ca)
+        self._actualiser_chiffre()
+
+    def _mois_courant_ca(self):
+        self.mois_ca = datetime.now().strftime("%Y-%m")
+        self.label_mois_ca.config(text=self.mois_ca)
+        self._actualiser_chiffre()
+
     def _actualiser_chiffre(self):
-        mois_actuel = datetime.now().strftime("%Y-%m")
         for item in self.table_chiffre.get_children():
             self.table_chiffre.delete(item)
         for ch in CHAMBRES:
             ca = 0
             nb = 0
             for r in RESERVATIONS:
-                if r["chambre_num"] == ch["numero"] and r["date_debut"][:7] == mois_actuel:
+                if r["chambre_num"] == ch["numero"] and r["date_debut"][:7] == self.mois_ca:
                     ca += r["montant_total"]
                     nb += 1
             self.table_chiffre.insert("", "end", values=(
@@ -1038,7 +1231,19 @@ class AppChambresHotes:
     # RÉINITIALISER
     # ============================================================
     def _reinitialiser_donnees(self):
-        if messagebox.askyesno("Confirmation", "Voulez-vous réinitialiser toutes les données ?"):
+        if messagebox.askyesno(
+            "Confirmation",
+            "Voulez-vous réinitialiser TOUTES les données (chambres ET réservations) "
+            "aux valeurs de départ ? Cette action est irréversible."
+        ):
+            CHAMBRES.clear()
+            CHAMBRES.extend([
+                {"numero": 101, "nom": "Chambre du Jardin", "type": "Double", "prix_nuit": 85},
+                {"numero": 102, "nom": "Chambre de la Mer", "type": "Double", "prix_nuit": 95},
+                {"numero": 103, "nom": "Suite Royale", "type": "Suite", "prix_nuit": 140},
+                {"numero": 104, "nom": "Chambre des Oliviers", "type": "Simple", "prix_nuit": 65},
+                {"numero": 105, "nom": "Chambre du Lac", "type": "Double", "prix_nuit": 90},
+            ])
             RESERVATIONS.clear()
             RESERVATIONS.extend([
                 {"id": 1, "nom_client": "Marie Dupont", "chambre_num": 101, "date_debut": "2026-07-10", "date_fin": "2026-07-15", "montant_paye": 200, "montant_total": 425},
@@ -1047,9 +1252,11 @@ class AppChambresHotes:
             ])
             global next_id
             next_id = 4
+            self.combo_chambre.config(values=[f"Chambre {c['numero']} - {c['nom']}" for c in CHAMBRES])
+            self._nouvelle_reservation_form()
             self._actualiser_toutes_les_vues()
             self._sauvegarder_donnees()
-            messagebox.showinfo("Réinitialisé", "Les données ont été restaurées aux valeurs initiales.")
+            messagebox.showinfo("Réinitialisé", "Les chambres et les réservations ont été restaurées aux valeurs initiales.")
 
     def _get_db_path(self):
         import sys, os
@@ -1058,6 +1265,14 @@ class AppChambresHotes:
         else:
             return os.path.join(os.path.dirname(os.path.abspath(__file__)), "chambres.db")
 
+    def _migrer_schema_reservations(self, cursor, conn):
+        """Ajoute la colonne remise_pourcentage si elle n'existe pas encore (bases créées avant cette fonctionnalité)."""
+        cursor.execute("PRAGMA table_info(reservations)")
+        colonnes = [col[1] for col in cursor.fetchall()]
+        if "remise_pourcentage" not in colonnes:
+            cursor.execute("ALTER TABLE reservations ADD COLUMN remise_pourcentage REAL DEFAULT 0")
+            conn.commit()
+
     def _init_db(self):
         import sqlite3
         conn = None
@@ -1065,7 +1280,8 @@ class AppChambresHotes:
             conn = sqlite3.connect(self._get_db_path())
             cursor = conn.cursor()
             cursor.execute('CREATE TABLE IF NOT EXISTS chambres (numero INTEGER PRIMARY KEY, nom TEXT, type TEXT, prix_nuit REAL)')
-            cursor.execute('CREATE TABLE IF NOT EXISTS reservations (id INTEGER PRIMARY KEY AUTOINCREMENT, nom_client TEXT, chambre_num INTEGER, date_debut TEXT, date_fin TEXT, montant_total REAL, montant_paye REAL)')
+            cursor.execute('CREATE TABLE IF NOT EXISTS reservations (id INTEGER PRIMARY KEY AUTOINCREMENT, nom_client TEXT, chambre_num INTEGER, date_debut TEXT, date_fin TEXT, montant_total REAL, montant_paye REAL, remise_pourcentage REAL DEFAULT 0)')
+            self._migrer_schema_reservations(cursor, conn)
             conn.commit()
         except sqlite3.Error as e:
             messagebox.showerror(
@@ -1083,12 +1299,16 @@ class AppChambresHotes:
         try:
             conn = sqlite3.connect(self._get_db_path())
             cursor = conn.cursor()
+            self._migrer_schema_reservations(cursor, conn)
             cursor.execute("DELETE FROM chambres")
             for ch in CHAMBRES:
                 cursor.execute("INSERT INTO chambres VALUES (?, ?, ?, ?)", (ch["numero"], ch["nom"], ch["type"], ch["prix_nuit"]))
             cursor.execute("DELETE FROM reservations")
             for r in RESERVATIONS:
-                cursor.execute("INSERT INTO reservations (id, nom_client, chambre_num, date_debut, date_fin, montant_total, montant_paye) VALUES (?, ?, ?, ?, ?, ?, ?)", (r["id"], r["nom_client"], r["chambre_num"], r["date_debut"], r["date_fin"], r["montant_total"], r["montant_paye"]))
+                cursor.execute(
+                    "INSERT INTO reservations (id, nom_client, chambre_num, date_debut, date_fin, montant_total, montant_paye, remise_pourcentage) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    (r["id"], r["nom_client"], r["chambre_num"], r["date_debut"], r["date_fin"], r["montant_total"], r["montant_paye"], r.get("remise_pourcentage", 0))
+                )
             conn.commit()
         except sqlite3.Error as e:
             if conn is not None:
@@ -1119,17 +1339,18 @@ class AppChambresHotes:
         try:
             conn = sqlite3.connect(db_path)
             cursor = conn.cursor()
+            self._migrer_schema_reservations(cursor, conn)
             cursor.execute("SELECT * FROM chambres")
             rows = cursor.fetchall()
             global CHAMBRES, RESERVATIONS, next_id
             CHAMBRES.clear()
             for row in rows:
                 CHAMBRES.append({"numero": row[0], "nom": row[1], "type": row[2], "prix_nuit": row[3]})
-            cursor.execute("SELECT * FROM reservations")
+            cursor.execute("SELECT id, nom_client, chambre_num, date_debut, date_fin, montant_total, montant_paye, remise_pourcentage FROM reservations")
             rows = cursor.fetchall()
             RESERVATIONS.clear()
             for row in rows:
-                RESERVATIONS.append({"id": row[0], "nom_client": row[1], "chambre_num": row[2], "date_debut": row[3], "date_fin": row[4], "montant_total": row[5], "montant_paye": row[6]})
+                RESERVATIONS.append({"id": row[0], "nom_client": row[1], "chambre_num": row[2], "date_debut": row[3], "date_fin": row[4], "montant_total": row[5], "montant_paye": row[6], "remise_pourcentage": row[7] or 0})
             next_id = max([r["id"] for r in RESERVATIONS] + [0]) + 1
             conn.close()
             if hasattr(self, 'combo_chambre'):
