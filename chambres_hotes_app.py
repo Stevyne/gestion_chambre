@@ -470,18 +470,27 @@ class AppChambresHotes:
         self.entry_fin.grid(row=3, column=1, sticky="w", pady=6)
         self.entry_fin.insert(0, (datetime.now() + timedelta(days=3)).strftime("%d/%m/%Y"))
 
-        tk.Label(grid, text="Remise (%) :", bg="#fff8e7", font=("Segoe UI", 10)).grid(row=4, column=0, sticky="e", pady=6)
+        self.label_remise = tk.Label(grid, text="Remise (%) :", bg="#fff8e7", font=("Segoe UI", 10))
+        self.label_remise.grid(row=4, column=0, sticky="e", pady=6)
         ligne_remise = tk.Frame(grid, bg="#fff8e7")
         ligne_remise.grid(row=4, column=1, sticky="w", pady=6)
         self.entry_remise = tk.Entry(ligne_remise, font=("Segoe UI", 10), width=8)
         self.entry_remise.pack(side="left")
         self.entry_remise.insert(0, "0")
+
+        self.type_remise = tk.StringVar(value="pourcentage")
+        tk.Radiobutton(ligne_remise, text="%", variable=self.type_remise, value="pourcentage", bg="#fff8e7", font=("Segoe UI", 9), command=self._on_type_remise_change).pack(side="left", padx=(8, 0))
+        tk.Radiobutton(ligne_remise, text="Ar fixe", variable=self.type_remise, value="montant", bg="#fff8e7", font=("Segoe UI", 9), command=self._on_type_remise_change).pack(side="left")
+
+        self.boutons_remise_rapide = []
         for pct, label in ((10, "10%"), (20, "20%"), (30, "30%"), (50, "50%")):
-            tk.Button(
+            btn = tk.Button(
                 ligne_remise, text=label, bg="#d9c9a3", fg="#3a2a1a", font=("Segoe UI", 8, "bold"),
                 padx=4, pady=2, relief="raised", bd=2,
                 command=lambda p=pct: self._appliquer_remise_rapide(p)
-            ).pack(side="left", padx=(6, 0))
+            )
+            btn.pack(side="left", padx=(6, 0))
+            self.boutons_remise_rapide.append(btn)
 
         tk.Label(grid, text="Montant total (Ar) :", bg="#fff8e7", font=("Segoe UI", 10)).grid(row=5, column=0, sticky="e", pady=6)
         self.entry_total = tk.Entry(grid, font=("Segoe UI", 10), width=20, state="readonly", readonlybackground="#fff8e7")
@@ -559,20 +568,39 @@ class AppChambresHotes:
                 break
         montant_brut = prix_nuit * duree
 
-        # Appliquer la remise (%) éventuelle, bornée entre 0 et 100
+        # Appliquer la remise éventuelle, selon le type choisi (pourcentage ou montant fixe)
         try:
             remise = float(self.entry_remise.get().strip() or "0")
         except ValueError:
             remise = 0
-        remise = max(0.0, min(100.0, remise))
 
-        total = montant_brut * (1 - remise / 100)
+        if self.type_remise.get() == "montant":
+            remise = max(0.0, remise)
+            total = montant_brut - remise
+        else:
+            remise = max(0.0, min(100.0, remise))
+            total = montant_brut * (1 - remise / 100)
+
+        total = max(0.0, total)  # le total ne descend jamais sous 0, même si la remise fixe dépasse le montant brut
         self.entry_total.config(state="normal")
         self.entry_total.delete(0, tk.END)
         self.entry_total.insert(0, f"{total:.0f}")
         self.entry_total.config(state="readonly", readonlybackground="#fff8e7")
 
+    def _on_type_remise_change(self):
+        if self.type_remise.get() == "montant":
+            self.label_remise.config(text="Remise (Ar) :")
+            for btn in self.boutons_remise_rapide:
+                btn.config(state="disabled")
+        else:
+            self.label_remise.config(text="Remise (%) :")
+            for btn in self.boutons_remise_rapide:
+                btn.config(state="normal")
+        self._calculer_montant_automatique()
+
     def _appliquer_remise_rapide(self, pourcentage):
+        self.type_remise.set("pourcentage")
+        self.label_remise.config(text="Remise (%) :")
         self.entry_remise.delete(0, tk.END)
         self.entry_remise.insert(0, str(pourcentage))
         self._calculer_montant_automatique()
@@ -598,11 +626,22 @@ class AppChambresHotes:
         try:
             remise = float(self.entry_remise.get().strip() or "0")
         except ValueError:
-            messagebox.showerror("Erreur", "La remise doit être un nombre (par exemple 20 pour 20%).")
+            messagebox.showerror("Erreur", "La remise doit être un nombre (par exemple 20 pour 20%, ou 10000 pour 10 000 Ar).")
             return
-        if remise < 0 or remise > 100:
-            messagebox.showerror("Erreur", "La remise doit être comprise entre 0 et 100.")
-            return
+
+        type_remise = self.type_remise.get()
+        if type_remise == "montant":
+            if remise < 0:
+                messagebox.showerror("Erreur", "La remise fixe ne peut pas être négative.")
+                return
+            remise_pourcentage = 0.0
+            remise_montant = remise
+        else:
+            if remise < 0 or remise > 100:
+                messagebox.showerror("Erreur", "La remise en pourcentage doit être comprise entre 0 et 100.")
+                return
+            remise_pourcentage = remise
+            remise_montant = 0.0
 
         if not nom:
             messagebox.showerror("Erreur", "Veuillez saisir le nom du client.")
@@ -662,7 +701,8 @@ class AppChambresHotes:
             reservation["date_fin"] = fin_iso
             reservation["montant_total"] = montant_total
             reservation["montant_paye"] = montant_paye
-            reservation["remise_pourcentage"] = remise
+            reservation["remise_pourcentage"] = remise_pourcentage
+            reservation["remise_montant"] = remise_montant
             messagebox.showinfo("Succès", f"Réservation #{reservation['id']} mise à jour pour {nom}.")
             self._nouvelle_reservation_form()
         else:
@@ -675,7 +715,8 @@ class AppChambresHotes:
                 "date_fin": fin_iso,
                 "montant_total": montant_total,
                 "montant_paye": montant_paye,
-                "remise_pourcentage": remise
+                "remise_pourcentage": remise_pourcentage,
+                "remise_montant": remise_montant
             }
             RESERVATIONS.append(nouvelle_reservation)
             next_id += 1
@@ -711,8 +752,22 @@ class AppChambresHotes:
         self.entry_fin.delete(0, tk.END)
         self.entry_fin.insert(0, format_date_affichage(reservation["date_fin"]))
 
-        self.entry_remise.delete(0, tk.END)
-        self.entry_remise.insert(0, str(reservation.get("remise_pourcentage", 0)))
+        remise_montant = reservation.get("remise_montant", 0) or 0
+        remise_pourcentage = reservation.get("remise_pourcentage", 0) or 0
+        if remise_montant > 0:
+            self.type_remise.set("montant")
+            self.label_remise.config(text="Remise (Ar) :")
+            for btn in self.boutons_remise_rapide:
+                btn.config(state="disabled")
+            self.entry_remise.delete(0, tk.END)
+            self.entry_remise.insert(0, str(remise_montant))
+        else:
+            self.type_remise.set("pourcentage")
+            self.label_remise.config(text="Remise (%) :")
+            for btn in self.boutons_remise_rapide:
+                btn.config(state="normal")
+            self.entry_remise.delete(0, tk.END)
+            self.entry_remise.insert(0, str(remise_pourcentage))
 
         self.entry_total.config(state="normal")
         self.entry_total.delete(0, tk.END)
@@ -738,6 +793,10 @@ class AppChambresHotes:
         self.entry_debut.insert(0, datetime.now().strftime("%d/%m/%Y"))
         self.entry_fin.delete(0, tk.END)
         self.entry_fin.insert(0, (datetime.now() + timedelta(days=3)).strftime("%d/%m/%Y"))
+        self.type_remise.set("pourcentage")
+        self.label_remise.config(text="Remise (%) :")
+        for btn in self.boutons_remise_rapide:
+            btn.config(state="normal")
         self.entry_remise.delete(0, tk.END)
         self.entry_remise.insert(0, "0")
         self.entry_paye.delete(0, tk.END)
@@ -1266,11 +1325,15 @@ class AppChambresHotes:
             return os.path.join(os.path.dirname(os.path.abspath(__file__)), "chambres.db")
 
     def _migrer_schema_reservations(self, cursor, conn):
-        """Ajoute la colonne remise_pourcentage si elle n'existe pas encore (bases créées avant cette fonctionnalité)."""
+        """Ajoute les colonnes remise_pourcentage / remise_montant si elles n'existent pas encore
+        (bases créées avant ces fonctionnalités)."""
         cursor.execute("PRAGMA table_info(reservations)")
         colonnes = [col[1] for col in cursor.fetchall()]
         if "remise_pourcentage" not in colonnes:
             cursor.execute("ALTER TABLE reservations ADD COLUMN remise_pourcentage REAL DEFAULT 0")
+            conn.commit()
+        if "remise_montant" not in colonnes:
+            cursor.execute("ALTER TABLE reservations ADD COLUMN remise_montant REAL DEFAULT 0")
             conn.commit()
 
     def _init_db(self):
@@ -1280,7 +1343,7 @@ class AppChambresHotes:
             conn = sqlite3.connect(self._get_db_path())
             cursor = conn.cursor()
             cursor.execute('CREATE TABLE IF NOT EXISTS chambres (numero INTEGER PRIMARY KEY, nom TEXT, type TEXT, prix_nuit REAL)')
-            cursor.execute('CREATE TABLE IF NOT EXISTS reservations (id INTEGER PRIMARY KEY AUTOINCREMENT, nom_client TEXT, chambre_num INTEGER, date_debut TEXT, date_fin TEXT, montant_total REAL, montant_paye REAL, remise_pourcentage REAL DEFAULT 0)')
+            cursor.execute('CREATE TABLE IF NOT EXISTS reservations (id INTEGER PRIMARY KEY AUTOINCREMENT, nom_client TEXT, chambre_num INTEGER, date_debut TEXT, date_fin TEXT, montant_total REAL, montant_paye REAL, remise_pourcentage REAL DEFAULT 0, remise_montant REAL DEFAULT 0)')
             self._migrer_schema_reservations(cursor, conn)
             conn.commit()
         except sqlite3.Error as e:
@@ -1306,8 +1369,8 @@ class AppChambresHotes:
             cursor.execute("DELETE FROM reservations")
             for r in RESERVATIONS:
                 cursor.execute(
-                    "INSERT INTO reservations (id, nom_client, chambre_num, date_debut, date_fin, montant_total, montant_paye, remise_pourcentage) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                    (r["id"], r["nom_client"], r["chambre_num"], r["date_debut"], r["date_fin"], r["montant_total"], r["montant_paye"], r.get("remise_pourcentage", 0))
+                    "INSERT INTO reservations (id, nom_client, chambre_num, date_debut, date_fin, montant_total, montant_paye, remise_pourcentage, remise_montant) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (r["id"], r["nom_client"], r["chambre_num"], r["date_debut"], r["date_fin"], r["montant_total"], r["montant_paye"], r.get("remise_pourcentage", 0), r.get("remise_montant", 0))
                 )
             conn.commit()
         except sqlite3.Error as e:
@@ -1346,11 +1409,11 @@ class AppChambresHotes:
             CHAMBRES.clear()
             for row in rows:
                 CHAMBRES.append({"numero": row[0], "nom": row[1], "type": row[2], "prix_nuit": row[3]})
-            cursor.execute("SELECT id, nom_client, chambre_num, date_debut, date_fin, montant_total, montant_paye, remise_pourcentage FROM reservations")
+            cursor.execute("SELECT id, nom_client, chambre_num, date_debut, date_fin, montant_total, montant_paye, remise_pourcentage, remise_montant FROM reservations")
             rows = cursor.fetchall()
             RESERVATIONS.clear()
             for row in rows:
-                RESERVATIONS.append({"id": row[0], "nom_client": row[1], "chambre_num": row[2], "date_debut": row[3], "date_fin": row[4], "montant_total": row[5], "montant_paye": row[6], "remise_pourcentage": row[7] or 0})
+                RESERVATIONS.append({"id": row[0], "nom_client": row[1], "chambre_num": row[2], "date_debut": row[3], "date_fin": row[4], "montant_total": row[5], "montant_paye": row[6], "remise_pourcentage": row[7] or 0, "remise_montant": row[8] or 0})
             next_id = max([r["id"] for r in RESERVATIONS] + [0]) + 1
             conn.close()
             if hasattr(self, 'combo_chambre'):
