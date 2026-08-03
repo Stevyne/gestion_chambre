@@ -66,17 +66,29 @@ class AppChambresHotes:
         self.root.title("🏨 Gestion des Chambres d'Hôtes")
         self.root.geometry("1100x780")
         self.root.minsize(900, 680)
-        self.root.configure(bg="#f5f0e6")
+        self.root.configure(bg="#eef2f7")
 
         # Style personnalisé
         style = ttk.Style()
         style.theme_use("clam")
-        style.configure("TNotebook", background="#f5f0e6", borderwidth=0)
-        style.configure("TNotebook.Tab", font=("Segoe UI", 11, "bold"), padding=[15, 8], background="#e8dcc8", foreground="#4a3c2a")
-        style.map("TNotebook.Tab", background=[("selected", "#fff8e7"), ("active", "#f0e6cc")])
-        style.configure("TFrame", background="#f5f0e6")
-        style.configure("TLabelframe", background="#fff8e7", relief="solid", borderwidth=1)
-        style.configure("TLabelframe.Label", background="#fff8e7", font=("Segoe UI", 11, "bold"), foreground="#5a4a32")
+        style.configure("TNotebook", background="#eef2f7", borderwidth=0)
+        style.configure("TNotebook.Tab", font=("Segoe UI", 11, "bold"), padding=[15, 8], background="#e2e8f0", foreground="#1e293b")
+        style.map("TNotebook.Tab", background=[("selected", "#f8fafc"), ("active", "#f1f5f9")])
+        style.configure("TFrame", background="#eef2f7")
+        style.configure("TLabelframe", background="#f8fafc", relief="solid", borderwidth=1, bordercolor="#e2e8f0")
+        style.configure("TLabelframe.Label", background="#f8fafc", font=("Segoe UI", 11, "bold"), foreground="#475569")
+
+        # Tableaux (Treeview) : look plat et moderne, lignes aérées
+        style.configure("Treeview", background="#ffffff", fieldbackground="#ffffff", foreground="#0f172a",
+                         rowheight=28, borderwidth=0, relief="flat", font=("Segoe UI", 10))
+        style.configure("Treeview.Heading", background="#eef2f7", foreground="#0f172a",
+                         font=("Segoe UI", 10, "bold"), relief="flat", borderwidth=0)
+        style.map("Treeview.Heading", background=[("active", "#e2e8f0")])
+        style.map("Treeview", background=[("selected", "#2563eb")], foreground=[("selected", "#ffffff")])
+
+        # Listes déroulantes
+        style.configure("TCombobox", fieldbackground="#ffffff", background="#ffffff", foreground="#0f172a", padding=4)
+        style.map("TCombobox", fieldbackground=[("readonly", "#ffffff")], foreground=[("readonly", "#0f172a")])
 
         # Variables
         self.date_aujourd_hui = datetime.now().strftime("%Y-%m-%d")
@@ -106,7 +118,7 @@ class AppChambresHotes:
         self.notebook.add(self.onglet_chiffre, text="💰 CA par Chambre")
 
         # Barre de statut
-        self.status = tk.Label(root, text="Prêt • Données SQLite (chambres.db) • Persistance automatique", bg="#5a4a32", fg="#fff8e7", font=("Segoe UI", 9), pady=6)
+        self.status = tk.Label(root, text="Prêt • Données SQLite (chambres.db) • Persistance automatique", bg="#475569", fg="#f8fafc", font=("Segoe UI", 9), pady=6)
         self.status.pack(fill="x", side="bottom")
 
         # Charger les données sauvegardées
@@ -120,16 +132,16 @@ class AppChambresHotes:
     # MENU
     # ============================================================
     def _creer_menu(self):
-        menubar = tk.Menu(self.root, bg="#5a4a32", fg="#fff8e7", font=("Segoe UI", 10))
+        menubar = tk.Menu(self.root, bg="#475569", fg="#f8fafc", font=("Segoe UI", 10))
         self.root.config(menu=menubar)
 
-        menu_fichier = tk.Menu(menubar, tearoff=0, bg="#5a4a32", fg="#fff8e7")
+        menu_fichier = tk.Menu(menubar, tearoff=0, bg="#475569", fg="#f8fafc")
         menubar.add_cascade(label="Fichier", menu=menu_fichier)
         menu_fichier.add_command(label="Réinitialiser les données", command=self._reinitialiser_donnees)
         menu_fichier.add_separator()
         menu_fichier.add_command(label="Quitter", command=self.root.quit)
 
-        menu_aide = tk.Menu(menubar, tearoff=0, bg="#5a4a32", fg="#fff8e7")
+        menu_aide = tk.Menu(menubar, tearoff=0, bg="#475569", fg="#f8fafc")
         menubar.add_cascade(label="Aide", menu=menu_aide)
         menu_aide.add_command(label="À propos", command=self._apropos)
 
@@ -137,23 +149,23 @@ class AppChambresHotes:
     # ACCUEIL (TABLEAU DE BORD)
     # ============================================================
     def _creer_accueil(self):
-        frame = tk.Frame(self.notebook, bg="#fff8e7")
+        frame = tk.Frame(self.notebook, bg="#f8fafc")
         frame.pack(fill="both", expand=True)
 
         # Titre
-        tk.Label(frame, text="Tableau de Bord", font=("Segoe UI", 22, "bold"), bg="#fff8e7", fg="#3a2a1a").pack(pady=(15, 25))
+        tk.Label(frame, text="Tableau de Bord", font=("Segoe UI", 22, "bold"), bg="#f8fafc", fg="#0f172a").pack(pady=(15, 25))
 
         # Cartes statistiques (4 colonnes)
-        cartes = tk.Frame(frame, bg="#fff8e7")
+        cartes = tk.Frame(frame, bg="#f8fafc")
         cartes.pack(pady=10)
 
-        self.stat_chambres_libres = self._carte_stat(cartes, "Chambres disponibles", "0", "#6aaa64", 0)
-        self.stat_reservations_actives = self._carte_stat(cartes, "Réservations actives", "0", "#4a90e2", 1)
-        self.stat_total_soldes = self._carte_stat(cartes, "Total des soldes dus", "0 €", "#e67e22", 2)
-        self.stat_client_aujourdhui = self._carte_stat(cartes, "Client du jour", "—", "#9b59b6", 3)
+        self.stat_chambres_libres = self._carte_stat(cartes, "Chambres disponibles", "0", "#16a34a", 0)
+        self.stat_reservations_actives = self._carte_stat(cartes, "Réservations actives", "0", "#2563eb", 1)
+        self.stat_total_soldes = self._carte_stat(cartes, "Total des soldes dus", "0 €", "#ea580c", 2)
+        self.stat_client_aujourdhui = self._carte_stat(cartes, "Client du jour", "—", "#7c3aed", 3)
 
         # Section réservations du jour / prochaines
-        section = tk.LabelFrame(frame, text="Réservations du jour et à venir", bg="#fff8e7", font=("Segoe UI", 12, "bold"), fg="#5a4a32")
+        section = tk.LabelFrame(frame, text="Réservations du jour et à venir", bg="#f8fafc", font=("Segoe UI", 12, "bold"), fg="#475569")
         section.pack(fill="both", expand=True, padx=20, pady=20)
 
         self.table_accueil = ttk.Treeview(section, columns=("nom", "chambre", "dates", "solde"), show="headings", height=8)
@@ -163,7 +175,7 @@ class AppChambresHotes:
         self.table_accueil.pack(fill="both", expand=True, padx=10, pady=10)
 
         # Section dernières réservations
-        section2 = tk.LabelFrame(frame, text="Dernières réservations enregistrées", bg="#fff8e7", font=("Segoe UI", 11, "bold"), fg="#5a4a32")
+        section2 = tk.LabelFrame(frame, text="Dernières réservations enregistrées", bg="#f8fafc", font=("Segoe UI", 11, "bold"), fg="#475569")
         section2.pack(fill="x", padx=20, pady=10)
         self.table_dernieres = ttk.Treeview(section2, columns=("id", "nom", "chambre", "debut", "fin"), show="headings", height=5)
         for col in ("id", "nom", "chambre", "debut", "fin"):
@@ -174,7 +186,7 @@ class AppChambresHotes:
         return frame
 
     def _carte_stat(self, parent, titre, valeur, couleur, colonne):
-        carte = tk.Frame(parent, bg=couleur, relief="raised", bd=2)
+        carte = tk.Frame(parent, bg=couleur, relief="flat", bd=0)
         carte.grid(row=0, column=colonne, padx=15, pady=10, sticky="nsew")
         parent.grid_columnconfigure(colonne, weight=1)
         tk.Label(carte, text=titre, bg=couleur, fg="#ffffff", font=("Segoe UI", 10, "bold")).pack(pady=(8, 2))
@@ -227,16 +239,16 @@ class AppChambresHotes:
     # CHAMBRES
     # ============================================================
     def _creer_chambres(self):
-        frame = tk.Frame(self.notebook, bg="#fff8e7")
+        frame = tk.Frame(self.notebook, bg="#f8fafc")
         frame.pack(fill="both", expand=True)
 
-        tk.Label(frame, text="État des Chambres", font=("Segoe UI", 20, "bold"), bg="#fff8e7", fg="#3a2a1a").pack(pady=(15, 20))
+        tk.Label(frame, text="État des Chambres", font=("Segoe UI", 20, "bold"), bg="#f8fafc", fg="#0f172a").pack(pady=(15, 20))
 
         # Liste des chambres (conteneur principal : table + formulaire côte à côte)
-        conteneur_principal = tk.Frame(frame, bg="#fff8e7")
+        conteneur_principal = tk.Frame(frame, bg="#f8fafc")
         conteneur_principal.pack(fill="both", expand=True, padx=20, pady=10)
 
-        liste_frame = tk.Frame(conteneur_principal, bg="#fff8e7")
+        liste_frame = tk.Frame(conteneur_principal, bg="#f8fafc")
         liste_frame.pack(side="left", fill="both", expand=True)
 
         self.table_chambres = ttk.Treeview(liste_frame, columns=("num", "nom", "type", "prix", "statut"), show="headings", height=12)
@@ -247,47 +259,47 @@ class AppChambresHotes:
 
 
         # Légende / Détails + Formulaire d'ajout (dans le même conteneur, à droite)
-        colonne_droite = tk.Frame(conteneur_principal, bg="#fff8e7", width=380)
+        colonne_droite = tk.Frame(conteneur_principal, bg="#f8fafc", width=380)
         colonne_droite.pack(side="right", fill="y", padx=(15, 0))
         colonne_droite.pack_propagate(False)
 
-        details = tk.LabelFrame(colonne_droite, text="Informations", bg="#fff8e7", font=("Segoe UI", 10, "bold"), fg="#5a4a32")
+        details = tk.LabelFrame(colonne_droite, text="Informations", bg="#f8fafc", font=("Segoe UI", 10, "bold"), fg="#475569")
         details.pack(fill="x", pady=(0, 15))
-        tk.Label(details, text="• Vert  = Disponible\n• Rouge = Occupée", bg="#fff8e7", fg="#4a3c2a", font=("Segoe UI", 9), justify="left").pack(anchor="w", padx=10, pady=8)
+        tk.Label(details, text="• Vert  = Disponible\n• Rouge = Occupée", bg="#f8fafc", fg="#1e293b", font=("Segoe UI", 9), justify="left").pack(anchor="w", padx=10, pady=8)
 
         # === FORMULAIRE AJOUT CHAMBRE ===
-        form_chambre = tk.LabelFrame(colonne_droite, text="Ajouter une chambre", bg="#fff8e7", font=("Segoe UI", 11, "bold"), fg="#5a4a32")
+        form_chambre = tk.LabelFrame(colonne_droite, text="Ajouter une chambre", bg="#f8fafc", font=("Segoe UI", 11, "bold"), fg="#475569")
         form_chambre.pack(fill="x", pady=10)
 
-        tk.Label(form_chambre, text="Numéro :", bg="#fff8e7", font=("Segoe UI", 9)).pack(anchor="w", padx=10, pady=(10, 2))
+        tk.Label(form_chambre, text="Numéro :", bg="#f8fafc", font=("Segoe UI", 9)).pack(anchor="w", padx=10, pady=(10, 2))
         self.entry_chambre_num = tk.Entry(form_chambre, font=("Segoe UI", 10), width=18)
         self.entry_chambre_num.pack(anchor="w", padx=10, pady=2)
 
-        tk.Label(form_chambre, text="Nom :", bg="#fff8e7", font=("Segoe UI", 9)).pack(anchor="w", padx=10, pady=(8, 2))
+        tk.Label(form_chambre, text="Nom :", bg="#f8fafc", font=("Segoe UI", 9)).pack(anchor="w", padx=10, pady=(8, 2))
         self.entry_chambre_nom = tk.Entry(form_chambre, font=("Segoe UI", 10), width=25)
         self.entry_chambre_nom.pack(anchor="w", padx=10, pady=2)
         self.entry_chambre_nom.insert(0, "Chambre du Soleil")
 
-        tk.Label(form_chambre, text="Type :", bg="#fff8e7", font=("Segoe UI", 9)).pack(anchor="w", padx=10, pady=(8, 2))
+        tk.Label(form_chambre, text="Type :", bg="#f8fafc", font=("Segoe UI", 9)).pack(anchor="w", padx=10, pady=(8, 2))
         self.entry_chambre_type = ttk.Combobox(form_chambre, values=["Simple", "Double", "Suite"], width=15, state="readonly")
         self.entry_chambre_type.pack(anchor="w", padx=10, pady=2)
         self.entry_chambre_type.current(1)
 
-        tk.Label(form_chambre, text="Prix / nuit (Ar) :", bg="#fff8e7", font=("Segoe UI", 9)).pack(anchor="w", padx=10, pady=(8, 2))
+        tk.Label(form_chambre, text="Prix / nuit (Ar) :", bg="#f8fafc", font=("Segoe UI", 9)).pack(anchor="w", padx=10, pady=(8, 2))
         self.entry_chambre_prix = tk.Entry(form_chambre, font=("Segoe UI", 10), width=15)
         self.entry_chambre_prix.pack(anchor="w", padx=10, pady=2)
         self.entry_chambre_prix.insert(0, "100")
 
-        btn_ajouter_ch = tk.Button(form_chambre, text="➕ Ajouter cette chambre", command=self._ajouter_chambre, bg="#4a90e2", fg="#ffffff", font=("Segoe UI", 9, "bold"), padx=6, pady=3, relief="raised", bd=2)
+        btn_ajouter_ch = tk.Button(form_chambre, text="➕ Ajouter cette chambre", command=self._ajouter_chambre, bg="#2563eb", fg="#ffffff", font=("Segoe UI", 9, "bold"), padx=6, pady=3, relief="flat", bd=0)
         btn_ajouter_ch.pack(pady=2)
 
-        btn_charger = tk.Button(form_chambre, text="📋 Charger sélection", command=self._charger_chambre_selectionnee, bg="#3498db", fg="#ffffff", font=("Segoe UI", 9, "bold"), padx=6, pady=3, relief="raised", bd=2)
+        btn_charger = tk.Button(form_chambre, text="📋 Charger sélection", command=self._charger_chambre_selectionnee, bg="#3b82f6", fg="#ffffff", font=("Segoe UI", 9, "bold"), padx=6, pady=3, relief="flat", bd=0)
         btn_charger.pack(pady=2)
 
-        btn_modifier_ch = tk.Button(form_chambre, text="✏️ Modifier", command=self._modifier_chambre, bg="#e67e22", fg="#ffffff", font=("Segoe UI", 9, "bold"), padx=6, pady=3, relief="raised", bd=2)
+        btn_modifier_ch = tk.Button(form_chambre, text="✏️ Modifier", command=self._modifier_chambre, bg="#ea580c", fg="#ffffff", font=("Segoe UI", 9, "bold"), padx=6, pady=3, relief="flat", bd=0)
         btn_modifier_ch.pack(pady=2)
 
-        btn_supprimer_ch = tk.Button(form_chambre, text="❌ Supprimer", command=self._supprimer_chambre, bg="#c0392b", fg="#ffffff", font=("Segoe UI", 9, "bold"), padx=6, pady=3, relief="raised", bd=2)
+        btn_supprimer_ch = tk.Button(form_chambre, text="❌ Supprimer", command=self._supprimer_chambre, bg="#dc2626", fg="#ffffff", font=("Segoe UI", 9, "bold"), padx=6, pady=3, relief="flat", bd=0)
         btn_supprimer_ch.pack(pady=2)
 
         return frame
@@ -427,8 +439,8 @@ class AppChambresHotes:
             statut = "Occupée" if ch["numero"] in chambres_occupees else "Disponible"
             tag = "occupee" if ch["numero"] in chambres_occupees else "dispo"
             self.table_chambres.insert("", "end", values=(ch["numero"], ch["nom"], ch["type"], f"{ch['prix_nuit']} Ar", statut), tags=(tag,))
-        self.table_chambres.tag_configure("occupee", background="#ffc7c7", foreground="#7a1a1a")
-        self.table_chambres.tag_configure("dispo", background="#c7ffc7", foreground="#1a7a1a")
+        self.table_chambres.tag_configure("occupee", background="#fecaca", foreground="#7f1d1d")
+        self.table_chambres.tag_configure("dispo", background="#bbf7d0", foreground="#15803d")
 
     # ============================================================
     # RÉSERVATIONS (FORMULAIRE)
@@ -436,74 +448,74 @@ class AppChambresHotes:
     def _creer_reservations(self):
         global next_id
         self.id_reservation_en_edition = None
-        frame = tk.Frame(self.notebook, bg="#fff8e7")
+        frame = tk.Frame(self.notebook, bg="#f8fafc")
         frame.pack(fill="both", expand=True)
 
         # Titre
-        tk.Label(frame, text="Nouvelle Réservation", font=("Segoe UI", 20, "bold"), bg="#fff8e7", fg="#3a2a1a").pack(pady=(15, 25))
+        tk.Label(frame, text="Nouvelle Réservation", font=("Segoe UI", 20, "bold"), bg="#f8fafc", fg="#0f172a").pack(pady=(15, 25))
 
         # Formulaire
-        form = tk.LabelFrame(frame, text="Informations de réservation", bg="#fff8e7", font=("Segoe UI", 12, "bold"), fg="#5a4a32")
+        form = tk.LabelFrame(frame, text="Informations de réservation", bg="#f8fafc", font=("Segoe UI", 12, "bold"), fg="#475569")
         form.pack(padx=30, pady=15, fill="x")
 
         # Grille
-        grid = tk.Frame(form, bg="#fff8e7")
+        grid = tk.Frame(form, bg="#f8fafc")
         grid.pack(padx=15, pady=15)
 
-        tk.Label(grid, text="Nom du client :", bg="#fff8e7", font=("Segoe UI", 10)).grid(row=0, column=0, sticky="e", pady=6)
+        tk.Label(grid, text="Nom du client :", bg="#f8fafc", font=("Segoe UI", 10)).grid(row=0, column=0, sticky="e", pady=6)
         self.entry_nom = tk.Entry(grid, font=("Segoe UI", 10), width=30)
         self.entry_nom.grid(row=0, column=1, sticky="w", pady=6)
         self.entry_nom.insert(0, "Jean Dupont")
 
-        tk.Label(grid, text="Chambre :", bg="#fff8e7", font=("Segoe UI", 10)).grid(row=1, column=0, sticky="e", pady=6)
+        tk.Label(grid, text="Chambre :", bg="#f8fafc", font=("Segoe UI", 10)).grid(row=1, column=0, sticky="e", pady=6)
         self.combo_chambre = ttk.Combobox(grid, values=[f"Chambre {c['numero']} - {c['nom']}" for c in CHAMBRES], width=28, state="readonly")
         self.combo_chambre.grid(row=1, column=1, sticky="w", pady=6)
         self.combo_chambre.current(0)
 
-        tk.Label(grid, text="Date début (JJ/MM/AAAA) :", bg="#fff8e7", font=("Segoe UI", 10)).grid(row=2, column=0, sticky="e", pady=6)
+        tk.Label(grid, text="Date début (JJ/MM/AAAA) :", bg="#f8fafc", font=("Segoe UI", 10)).grid(row=2, column=0, sticky="e", pady=6)
         self.entry_debut = tk.Entry(grid, font=("Segoe UI", 10), width=20)
         self.entry_debut.grid(row=2, column=1, sticky="w", pady=6)
         self.entry_debut.insert(0, datetime.now().strftime("%d/%m/%Y"))
 
-        tk.Label(grid, text="Date fin (JJ/MM/AAAA) :", bg="#fff8e7", font=("Segoe UI", 10)).grid(row=3, column=0, sticky="e", pady=6)
+        tk.Label(grid, text="Date fin (JJ/MM/AAAA) :", bg="#f8fafc", font=("Segoe UI", 10)).grid(row=3, column=0, sticky="e", pady=6)
         self.entry_fin = tk.Entry(grid, font=("Segoe UI", 10), width=20)
         self.entry_fin.grid(row=3, column=1, sticky="w", pady=6)
         self.entry_fin.insert(0, (datetime.now() + timedelta(days=3)).strftime("%d/%m/%Y"))
 
-        self.label_remise = tk.Label(grid, text="Remise (%) :", bg="#fff8e7", font=("Segoe UI", 10))
+        self.label_remise = tk.Label(grid, text="Remise (%) :", bg="#f8fafc", font=("Segoe UI", 10))
         self.label_remise.grid(row=4, column=0, sticky="e", pady=6)
-        ligne_remise = tk.Frame(grid, bg="#fff8e7")
+        ligne_remise = tk.Frame(grid, bg="#f8fafc")
         ligne_remise.grid(row=4, column=1, sticky="w", pady=6)
         self.entry_remise = tk.Entry(ligne_remise, font=("Segoe UI", 10), width=8)
         self.entry_remise.pack(side="left")
         self.entry_remise.insert(0, "0")
 
         self.type_remise = tk.StringVar(value="pourcentage")
-        tk.Radiobutton(ligne_remise, text="%", variable=self.type_remise, value="pourcentage", bg="#fff8e7", font=("Segoe UI", 9), command=self._on_type_remise_change).pack(side="left", padx=(8, 0))
-        tk.Radiobutton(ligne_remise, text="Ar fixe", variable=self.type_remise, value="montant", bg="#fff8e7", font=("Segoe UI", 9), command=self._on_type_remise_change).pack(side="left")
+        tk.Radiobutton(ligne_remise, text="%", variable=self.type_remise, value="pourcentage", bg="#f8fafc", font=("Segoe UI", 9), command=self._on_type_remise_change).pack(side="left", padx=(8, 0))
+        tk.Radiobutton(ligne_remise, text="Ar fixe", variable=self.type_remise, value="montant", bg="#f8fafc", font=("Segoe UI", 9), command=self._on_type_remise_change).pack(side="left")
 
         self.boutons_remise_rapide = []
         for pct, label in ((10, "10%"), (20, "20%"), (30, "30%"), (50, "50%")):
             btn = tk.Button(
-                ligne_remise, text=label, bg="#d9c9a3", fg="#3a2a1a", font=("Segoe UI", 8, "bold"),
-                padx=4, pady=2, relief="raised", bd=2,
+                ligne_remise, text=label, bg="#e2e8f0", fg="#0f172a", font=("Segoe UI", 8, "bold"),
+                padx=4, pady=2, relief="flat", bd=0,
                 command=lambda p=pct: self._appliquer_remise_rapide(p)
             )
             btn.pack(side="left", padx=(6, 0))
             self.boutons_remise_rapide.append(btn)
 
-        tk.Label(grid, text="Montant total (Ar) :", bg="#fff8e7", font=("Segoe UI", 10)).grid(row=5, column=0, sticky="e", pady=6)
-        self.entry_total = tk.Entry(grid, font=("Segoe UI", 10), width=20, state="readonly", readonlybackground="#fff8e7")
+        tk.Label(grid, text="Montant total (Ar) :", bg="#f8fafc", font=("Segoe UI", 10)).grid(row=5, column=0, sticky="e", pady=6)
+        self.entry_total = tk.Entry(grid, font=("Segoe UI", 10), width=20, state="readonly", readonlybackground="#f8fafc")
         self.entry_total.grid(row=5, column=1, sticky="w", pady=6)
         self.entry_total.insert(0, "300")
 
-        tk.Label(grid, text="Montant payé (Ar) :", bg="#fff8e7", font=("Segoe UI", 10)).grid(row=6, column=0, sticky="e", pady=6)
-        ligne_paye = tk.Frame(grid, bg="#fff8e7")
+        tk.Label(grid, text="Montant payé (Ar) :", bg="#f8fafc", font=("Segoe UI", 10)).grid(row=6, column=0, sticky="e", pady=6)
+        ligne_paye = tk.Frame(grid, bg="#f8fafc")
         ligne_paye.grid(row=6, column=1, sticky="w", pady=6)
         self.entry_paye = tk.Entry(ligne_paye, font=("Segoe UI", 10), width=14)
         self.entry_paye.pack(side="left")
         self.entry_paye.insert(0, "0")
-        btn_paye_total = tk.Button(ligne_paye, text="✅ Payé intégralement", command=self._marquer_paye_formulaire, bg="#6aaa64", fg="#ffffff", font=("Segoe UI", 8, "bold"), padx=4, pady=2, relief="raised", bd=2)
+        btn_paye_total = tk.Button(ligne_paye, text="✅ Payé intégralement", command=self._marquer_paye_formulaire, bg="#16a34a", fg="#ffffff", font=("Segoe UI", 8, "bold"), padx=4, pady=2, relief="flat", bd=0)
         btn_paye_total.pack(side="left", padx=(8, 0))
 
         # Lier le calcul automatique
@@ -513,24 +525,24 @@ class AppChambresHotes:
         self.entry_remise.bind("<KeyRelease>", self._calculer_montant_automatique)
 
         # Indicateur de mode édition
-        self.label_mode_reservation = tk.Label(form, text="", bg="#fff8e7", fg="#c0392b", font=("Segoe UI", 9, "bold"))
+        self.label_mode_reservation = tk.Label(form, text="", bg="#f8fafc", fg="#dc2626", font=("Segoe UI", 9, "bold"))
         self.label_mode_reservation.pack(pady=(0, 4))
 
         # Boutons
-        btn_frame = tk.Frame(form, bg="#fff8e7")
+        btn_frame = tk.Frame(form, bg="#f8fafc")
         btn_frame.pack(pady=(5, 15))
-        self.btn_enregistrer_reservation = tk.Button(btn_frame, text="✅ Enregistrer la réservation", command=self._enregistrer_reservation, bg="#6aaa64", fg="#ffffff", font=("Segoe UI", 11, "bold"), padx=14, pady=8, relief="raised", bd=2)
+        self.btn_enregistrer_reservation = tk.Button(btn_frame, text="✅ Enregistrer la réservation", command=self._enregistrer_reservation, bg="#16a34a", fg="#ffffff", font=("Segoe UI", 11, "bold"), padx=14, pady=8, relief="flat", bd=0)
         self.btn_enregistrer_reservation.pack(side="left", padx=5)
-        btn_nouvelle_resa = tk.Button(btn_frame, text="🆕 Nouvelle réservation", command=self._nouvelle_reservation_form, bg="#4a90e2", fg="#ffffff", font=("Segoe UI", 10, "bold"), padx=12, pady=8, relief="raised", bd=2)
+        btn_nouvelle_resa = tk.Button(btn_frame, text="🆕 Nouvelle réservation", command=self._nouvelle_reservation_form, bg="#2563eb", fg="#ffffff", font=("Segoe UI", 10, "bold"), padx=12, pady=8, relief="flat", bd=0)
         btn_nouvelle_resa.pack(side="left", padx=5)
-        btn_supprimer_resa = tk.Button(btn_frame, text="🗑️ Supprimer la réservation", command=self._supprimer_reservation, bg="#c0392b", fg="#ffffff", font=("Segoe UI", 10, "bold"), padx=12, pady=8, relief="raised", bd=2)
+        btn_supprimer_resa = tk.Button(btn_frame, text="🗑️ Supprimer la réservation", command=self._supprimer_reservation, bg="#dc2626", fg="#ffffff", font=("Segoe UI", 10, "bold"), padx=12, pady=8, relief="flat", bd=0)
         btn_supprimer_resa.pack(side="left", padx=5)
 
         # Tableau des réservations en cours
-        section_table = tk.LabelFrame(frame, text="Réservations enregistrées", bg="#fff8e7", font=("Segoe UI", 12, "bold"), fg="#5a4a32")
+        section_table = tk.LabelFrame(frame, text="Réservations enregistrées", bg="#f8fafc", font=("Segoe UI", 12, "bold"), fg="#475569")
         section_table.pack(fill="both", expand=True, padx=30, pady=15)
 
-        tk.Label(section_table, text="Astuce : cliquez sur une ligne pour la charger dans le formulaire ci-dessus (modification ou suppression).", bg="#fff8e7", fg="#7a6a52", font=("Segoe UI", 8, "italic")).pack(anchor="w", padx=10, pady=(8, 0))
+        tk.Label(section_table, text="Astuce : cliquez sur une ligne pour la charger dans le formulaire ci-dessus (modification ou suppression).", bg="#f8fafc", fg="#64748b", font=("Segoe UI", 8, "italic")).pack(anchor="w", padx=10, pady=(8, 0))
 
         self.table_reservations = ttk.Treeview(section_table, columns=("id", "nom", "chambre", "debut", "fin", "total", "paye", "solde"), show="headings", height=8)
         for col in ("id", "nom", "chambre", "debut", "fin", "total", "paye", "solde"):
@@ -549,7 +561,7 @@ class AppChambresHotes:
             self.entry_total.config(state="normal")
             self.entry_total.delete(0, tk.END)
             self.entry_total.insert(0, "0")
-            self.entry_total.config(state="readonly", readonlybackground="#fff8e7")
+            self.entry_total.config(state="readonly", readonlybackground="#f8fafc")
             return
         try:
             chambre_num = int(chambre_str.split()[1])
@@ -585,7 +597,7 @@ class AppChambresHotes:
         self.entry_total.config(state="normal")
         self.entry_total.delete(0, tk.END)
         self.entry_total.insert(0, f"{total:.0f}")
-        self.entry_total.config(state="readonly", readonlybackground="#fff8e7")
+        self.entry_total.config(state="readonly", readonlybackground="#f8fafc")
 
     def _on_type_remise_change(self):
         if self.type_remise.get() == "montant":
@@ -772,18 +784,18 @@ class AppChambresHotes:
         self.entry_total.config(state="normal")
         self.entry_total.delete(0, tk.END)
         self.entry_total.insert(0, str(reservation["montant_total"]))
-        self.entry_total.config(state="readonly", readonlybackground="#fff8e7")
+        self.entry_total.config(state="readonly", readonlybackground="#f8fafc")
 
         self.entry_paye.delete(0, tk.END)
         self.entry_paye.insert(0, str(reservation["montant_paye"]))
 
-        self.btn_enregistrer_reservation.config(text="💾 Enregistrer les modifications", bg="#e67e22")
+        self.btn_enregistrer_reservation.config(text="💾 Enregistrer les modifications", bg="#ea580c")
         self.label_mode_reservation.config(text=f"✏️ Modification de la réservation #{resa_id} ({reservation['nom_client']}) — cliquez sur \"Nouvelle réservation\" pour annuler.")
 
     def _nouvelle_reservation_form(self):
         self.id_reservation_en_edition = None
         self.label_mode_reservation.config(text="")
-        self.btn_enregistrer_reservation.config(text="✅ Enregistrer la réservation", bg="#6aaa64")
+        self.btn_enregistrer_reservation.config(text="✅ Enregistrer la réservation", bg="#16a34a")
 
         self.entry_nom.delete(0, tk.END)
         self.entry_nom.insert(0, "Jean Dupont")
@@ -831,28 +843,28 @@ class AppChambresHotes:
     # CALENDRIER
     # ============================================================
     def _creer_calendrier(self):
-        frame = tk.Frame(self.notebook, bg="#fff8e7")
+        frame = tk.Frame(self.notebook, bg="#f8fafc")
         frame.pack(fill="both", expand=True)
 
-        tk.Label(frame, text="Calendrier des Réservations", font=("Segoe UI", 20, "bold"), bg="#fff8e7", fg="#3a2a1a").pack(pady=(15, 25))
+        tk.Label(frame, text="Calendrier des Réservations", font=("Segoe UI", 20, "bold"), bg="#f8fafc", fg="#0f172a").pack(pady=(15, 25))
 
         # Sélection du mois
-        controles = tk.Frame(frame, bg="#fff8e7")
+        controles = tk.Frame(frame, bg="#f8fafc")
         controles.pack(pady=5)
 
         self.mois_actuel = datetime.now().strftime("%Y-%m")
 
-        btn_prec = tk.Button(controles, text="◀ Mois précédent", command=self._mois_precedent, bg="#e8dcc8", fg="#5a4a32", font=("Segoe UI", 9, "bold"))
+        btn_prec = tk.Button(controles, text="◀ Mois précédent", command=self._mois_precedent, bg="#e2e8f0", fg="#475569", font=("Segoe UI", 9, "bold"))
         btn_prec.pack(side="left", padx=10)
 
-        self.label_mois = tk.Label(controles, text=self.mois_actuel, bg="#fff8e7", fg="#3a2a1a", font=("Segoe UI", 14, "bold"), width=15)
+        self.label_mois = tk.Label(controles, text=self.mois_actuel, bg="#f8fafc", fg="#0f172a", font=("Segoe UI", 14, "bold"), width=15)
         self.label_mois.pack(side="left", padx=20)
 
-        btn_suiv = tk.Button(controles, text="Mois suivant ▶", command=self._mois_suivant, bg="#e8dcc8", fg="#5a4a32", font=("Segoe UI", 9, "bold"))
+        btn_suiv = tk.Button(controles, text="Mois suivant ▶", command=self._mois_suivant, bg="#e2e8f0", fg="#475569", font=("Segoe UI", 9, "bold"))
         btn_suiv.pack(side="left", padx=10)
 
         # Calendrier visuel
-        calendrier_frame = tk.Frame(frame, bg="#fff8e7")
+        calendrier_frame = tk.Frame(frame, bg="#f8fafc")
         calendrier_frame.pack(padx=20, pady=15, fill="both", expand=True)
 
         self.cells = {}
@@ -863,22 +875,22 @@ class AppChambresHotes:
 
         jours_semaine = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
         for i, jour in enumerate(jours_semaine):
-            tk.Label(calendrier_frame, text=jour, bg="#5a4a32", fg="#fff8e7", font=("Segoe UI", 10, "bold"), relief="raised", bd=1).grid(row=0, column=i, sticky="nsew", padx=2, pady=2)
+            tk.Label(calendrier_frame, text=jour, bg="#475569", fg="#f8fafc", font=("Segoe UI", 10, "bold"), relief="flat", bd=1).grid(row=0, column=i, sticky="nsew", padx=2, pady=2)
 
         for i in range(6):
             for j in range(7):
-                cell = tk.Label(calendrier_frame, text="", bg="#fff8e7", relief="sunken", bd=1, font=("Segoe UI", 9))
+                cell = tk.Label(calendrier_frame, text="", bg="#f8fafc", relief="flat", bd=1, highlightthickness=1, highlightbackground="#e2e8f0", font=("Segoe UI", 9))
                 cell.grid(row=i+1, column=j, sticky="nsew", padx=2, pady=2)
                 self.cells[(i+1, j)] = cell
 
         self._afficher_mois()
 
         # Légende
-        legende = tk.Frame(frame, bg="#fff8e7")
+        legende = tk.Frame(frame, bg="#f8fafc")
         legende.pack(pady=10)
-        tk.Label(legende, text="● Disponible", bg="#fff8e7", fg="#6aaa64", font=("Segoe UI", 10, "bold")).pack(side="left", padx=15)
-        tk.Label(legende, text="● Réservé", bg="#fff8e7", fg="#e67e22", font=("Segoe UI", 10, "bold")).pack(side="left", padx=15)
-        tk.Label(legende, text="● Occupé (aujourd'hui)", bg="#fff8e7", fg="#c0392b", font=("Segoe UI", 10, "bold")).pack(side="left", padx=15)
+        tk.Label(legende, text="● Disponible", bg="#f8fafc", fg="#16a34a", font=("Segoe UI", 10, "bold")).pack(side="left", padx=15)
+        tk.Label(legende, text="● Réservé", bg="#f8fafc", fg="#ea580c", font=("Segoe UI", 10, "bold")).pack(side="left", padx=15)
+        tk.Label(legende, text="● Occupé (aujourd'hui)", bg="#f8fafc", fg="#dc2626", font=("Segoe UI", 10, "bold")).pack(side="left", padx=15)
 
         return frame
 
@@ -916,7 +928,7 @@ class AppChambresHotes:
 
         # Nettoyer
         for cell in self.cells.values():
-            cell.config(text="", bg="#fff8e7", fg="#3a2a1a")
+            cell.config(text="", bg="#f8fafc", fg="#0f172a")
 
         aujourdhui_str = datetime.now().strftime("%Y-%m-%d")
 
@@ -940,13 +952,13 @@ class AppChambresHotes:
 
             # Couleurs
             if date_str == aujourdhui_str:
-                couleur = "#ff9999"
+                couleur = "#f87171"
                 texte = f"{jour}\n(AUJ.)\n"
             elif chambres_reservees:
-                couleur = "#ffe0b2"
+                couleur = "#fed7aa"
                 texte = f"{jour}\n"
             else:
-                couleur = "#e8f5e9"
+                couleur = "#dcfce7"
                 texte = f"{jour}\n"
 
             # Ajouter le nom des réservations
@@ -960,33 +972,33 @@ class AppChambresHotes:
 
             cell = self.cells.get((row, col))
             if cell:
-                cell.config(text=texte, bg=couleur, fg="#3a2a1a", font=("Segoe UI", 8))
+                cell.config(text=texte, bg=couleur, fg="#0f172a", font=("Segoe UI", 8))
 
     # ============================================================
     # HISTORIQUE
     # ============================================================
     def _creer_historique(self):
-        frame = tk.Frame(self.notebook, bg="#fff8e7")
+        frame = tk.Frame(self.notebook, bg="#f8fafc")
         frame.pack(fill="both", expand=True)
 
-        tk.Label(frame, text="Historique des Réservations", font=("Segoe UI", 20, "bold"), bg="#fff8e7", fg="#3a2a1a").pack(pady=(15, 25))
+        tk.Label(frame, text="Historique des Réservations", font=("Segoe UI", 20, "bold"), bg="#f8fafc", fg="#0f172a").pack(pady=(15, 25))
 
         # Filtres
-        filtres = tk.Frame(frame, bg="#fff8e7")
+        filtres = tk.Frame(frame, bg="#f8fafc")
         filtres.pack(pady=5)
-        tk.Label(filtres, text="Client :", bg="#fff8e7", font=("Segoe UI", 10)).pack(side="left", padx=5)
+        tk.Label(filtres, text="Client :", bg="#f8fafc", font=("Segoe UI", 10)).pack(side="left", padx=5)
         self.entry_filtre_client = tk.Entry(filtres, width=20)
         self.entry_filtre_client.pack(side="left", padx=5)
-        tk.Label(filtres, text="Chambre :", bg="#fff8e7", font=("Segoe UI", 10)).pack(side="left", padx=5)
+        tk.Label(filtres, text="Chambre :", bg="#f8fafc", font=("Segoe UI", 10)).pack(side="left", padx=5)
         self.entry_filtre_chambre = tk.Entry(filtres, width=10)
         self.entry_filtre_chambre.pack(side="left", padx=5)
-        btn_filtrer = tk.Button(filtres, text="Filtrer", command=self._filtrer_historique, bg="#5a4a32", fg="#fff8e7", font=("Segoe UI", 9, "bold"))
+        btn_filtrer = tk.Button(filtres, text="Filtrer", command=self._filtrer_historique, bg="#475569", fg="#f8fafc", font=("Segoe UI", 9, "bold"))
         btn_filtrer.pack(side="left", padx=10)
-        btn_reset = tk.Button(filtres, text="Réinitialiser", command=self._actualiser_historique, bg="#e8dcc8", fg="#5a4a32", font=("Segoe UI", 9, "bold"))
+        btn_reset = tk.Button(filtres, text="Réinitialiser", command=self._actualiser_historique, bg="#e2e8f0", fg="#475569", font=("Segoe UI", 9, "bold"))
         btn_reset.pack(side="left", padx=5)
 
         # Table historique
-        table_frame = tk.LabelFrame(frame, text="Toutes les réservations", bg="#fff8e7", font=("Segoe UI", 11, "bold"), fg="#5a4a32")
+        table_frame = tk.LabelFrame(frame, text="Toutes les réservations", bg="#f8fafc", font=("Segoe UI", 11, "bold"), fg="#475569")
         table_frame.pack(fill="both", expand=True, padx=20, pady=15)
 
         self.table_historique = ttk.Treeview(table_frame, columns=("id", "client", "chambre", "debut", "fin", "duree", "total", "paye", "solde"), show="headings", height=12)
@@ -1038,13 +1050,13 @@ class AppChambresHotes:
     # PAIEMENTS / SOLDES
     # ============================================================
     def _creer_paiements(self):
-        frame = tk.Frame(self.notebook, bg="#fff8e7")
+        frame = tk.Frame(self.notebook, bg="#f8fafc")
         frame.pack(fill="both", expand=True)
 
-        tk.Label(frame, text="Soldes et Paiements", font=("Segoe UI", 20, "bold"), bg="#fff8e7", fg="#3a2a1a").pack(pady=(15, 25))
+        tk.Label(frame, text="Soldes et Paiements", font=("Segoe UI", 20, "bold"), bg="#f8fafc", fg="#0f172a").pack(pady=(15, 25))
 
         # Résumé par client
-        resume = tk.LabelFrame(frame, text="Résumé des soldes par client", bg="#fff8e7", font=("Segoe UI", 12, "bold"), fg="#5a4a32")
+        resume = tk.LabelFrame(frame, text="Résumé des soldes par client", bg="#f8fafc", font=("Segoe UI", 12, "bold"), fg="#475569")
         resume.pack(fill="x", padx=20, pady=10)
 
         self.table_soldes = ttk.Treeview(resume, columns=("client", "reservations", "total_du", "total_paye", "solde_restant"), show="headings", height=5)
@@ -1055,30 +1067,30 @@ class AppChambresHotes:
 
         # Mise à jour d'un paiement (placé ici, avant le tableau extensible, pour rester
         # toujours visible même sur un écran ou une fenêtre de taille réduite)
-        maj = tk.LabelFrame(frame, text="Mettre à jour un paiement", bg="#fff8e7", font=("Segoe UI", 11, "bold"), fg="#5a4a32")
+        maj = tk.LabelFrame(frame, text="Mettre à jour un paiement", bg="#f8fafc", font=("Segoe UI", 11, "bold"), fg="#475569")
         maj.pack(fill="x", padx=20, pady=(0, 10))
 
-        ligne = tk.Frame(maj, bg="#fff8e7")
+        ligne = tk.Frame(maj, bg="#f8fafc")
         ligne.pack(padx=10, pady=(10, 2), fill="x")
 
-        tk.Label(ligne, text="Réservation (ID) :", bg="#fff8e7", font=("Segoe UI", 9)).pack(side="left", padx=(0, 5))
+        tk.Label(ligne, text="Réservation (ID) :", bg="#f8fafc", font=("Segoe UI", 9)).pack(side="left", padx=(0, 5))
         self.entry_paiement_id = tk.Entry(ligne, font=("Segoe UI", 10), width=8)
         self.entry_paiement_id.pack(side="left", padx=(0, 15))
 
-        tk.Label(ligne, text="Montant payé (Ar) :", bg="#fff8e7", font=("Segoe UI", 9)).pack(side="left", padx=(0, 5))
+        tk.Label(ligne, text="Montant payé (Ar) :", bg="#f8fafc", font=("Segoe UI", 9)).pack(side="left", padx=(0, 5))
         self.entry_paiement_montant = tk.Entry(ligne, font=("Segoe UI", 10), width=12)
         self.entry_paiement_montant.pack(side="left", padx=(0, 15))
 
-        btn_enregistrer_paiement = tk.Button(ligne, text="💾 Enregistrer le paiement", command=self._enregistrer_paiement, bg="#4a90e2", fg="#ffffff", font=("Segoe UI", 9, "bold"), padx=8, pady=4, relief="raised", bd=2)
+        btn_enregistrer_paiement = tk.Button(ligne, text="💾 Enregistrer le paiement", command=self._enregistrer_paiement, bg="#2563eb", fg="#ffffff", font=("Segoe UI", 9, "bold"), padx=8, pady=4, relief="flat", bd=0)
         btn_enregistrer_paiement.pack(side="left", padx=(0, 10))
 
-        btn_marquer_paye = tk.Button(ligne, text="✅ Marquer comme payé (solde total)", command=self._marquer_comme_paye, bg="#6aaa64", fg="#ffffff", font=("Segoe UI", 9, "bold"), padx=8, pady=4, relief="raised", bd=2)
+        btn_marquer_paye = tk.Button(ligne, text="✅ Marquer comme payé (solde total)", command=self._marquer_comme_paye, bg="#16a34a", fg="#ffffff", font=("Segoe UI", 9, "bold"), padx=8, pady=4, relief="flat", bd=0)
         btn_marquer_paye.pack(side="left")
 
-        tk.Label(maj, text="Astuce : cliquez sur une ligne du tableau ci-dessous pour pré-remplir l'ID et le montant payé actuel.", bg="#fff8e7", fg="#7a6a52", font=("Segoe UI", 8, "italic")).pack(anchor="w", padx=10, pady=(2, 10))
+        tk.Label(maj, text="Astuce : cliquez sur une ligne du tableau ci-dessous pour pré-remplir l'ID et le montant payé actuel.", bg="#f8fafc", fg="#64748b", font=("Segoe UI", 8, "italic")).pack(anchor="w", padx=10, pady=(2, 10))
 
         # Détail des réservations avec solde
-        detail = tk.LabelFrame(frame, text="Détail des réservations avec solde", bg="#fff8e7", font=("Segoe UI", 11, "bold"), fg="#5a4a32")
+        detail = tk.LabelFrame(frame, text="Détail des réservations avec solde", bg="#f8fafc", font=("Segoe UI", 11, "bold"), fg="#475569")
         detail.pack(fill="both", expand=True, padx=20, pady=(0, 15))
 
         self.table_detail_soldes = ttk.Treeview(detail, columns=("id", "client", "chambre", "debut", "fin", "montant_total", "montant_paye", "solde"), show="headings", height=6)
@@ -1191,29 +1203,29 @@ class AppChambresHotes:
     # CHIFFRE D'AFFAIRES PAR CHAMBRE (MOIS EN COURS)
     # ============================================================
     def _creer_chiffre_affaires(self):
-        frame = tk.Frame(self.notebook, bg="#fff8e7")
+        frame = tk.Frame(self.notebook, bg="#f8fafc")
         frame.pack(fill="both", expand=True)
 
-        tk.Label(frame, text="Chiffre d'Affaires du Mois par Chambre", font=("Segoe UI", 20, "bold"), bg="#fff8e7", fg="#3a2a1a").pack(pady=(15, 20))
+        tk.Label(frame, text="Chiffre d'Affaires du Mois par Chambre", font=("Segoe UI", 20, "bold"), bg="#f8fafc", fg="#0f172a").pack(pady=(15, 20))
 
         self.mois_ca = datetime.now().strftime("%Y-%m")
 
-        controles = tk.Frame(frame, bg="#fff8e7")
+        controles = tk.Frame(frame, bg="#f8fafc")
         controles.pack(pady=(5, 15))
 
-        btn_prec_ca = tk.Button(controles, text="◀ Mois précédent", command=self._mois_precedent_ca, bg="#e8dcc8", fg="#5a4a32", font=("Segoe UI", 9, "bold"))
+        btn_prec_ca = tk.Button(controles, text="◀ Mois précédent", command=self._mois_precedent_ca, bg="#e2e8f0", fg="#475569", font=("Segoe UI", 9, "bold"))
         btn_prec_ca.pack(side="left", padx=10)
 
-        self.label_mois_ca = tk.Label(controles, text=self.mois_ca, bg="#fff8e7", fg="#3a2a1a", font=("Segoe UI", 14, "bold"), width=15)
+        self.label_mois_ca = tk.Label(controles, text=self.mois_ca, bg="#f8fafc", fg="#0f172a", font=("Segoe UI", 14, "bold"), width=15)
         self.label_mois_ca.pack(side="left", padx=20)
 
-        btn_suiv_ca = tk.Button(controles, text="Mois suivant ▶", command=self._mois_suivant_ca, bg="#e8dcc8", fg="#5a4a32", font=("Segoe UI", 9, "bold"))
+        btn_suiv_ca = tk.Button(controles, text="Mois suivant ▶", command=self._mois_suivant_ca, bg="#e2e8f0", fg="#475569", font=("Segoe UI", 9, "bold"))
         btn_suiv_ca.pack(side="left", padx=10)
 
-        btn_ce_mois_ca = tk.Button(controles, text="Mois en cours", command=self._mois_courant_ca, bg="#4a90e2", fg="#ffffff", font=("Segoe UI", 9, "bold"))
+        btn_ce_mois_ca = tk.Button(controles, text="Mois en cours", command=self._mois_courant_ca, bg="#2563eb", fg="#ffffff", font=("Segoe UI", 9, "bold"))
         btn_ce_mois_ca.pack(side="left", padx=(20, 0))
 
-        table_frame = tk.LabelFrame(frame, text="Chiffre d'affaires du mois", bg="#fff8e7", font=("Segoe UI", 11, "bold"), fg="#5a4a32")
+        table_frame = tk.LabelFrame(frame, text="Chiffre d'affaires du mois", bg="#f8fafc", font=("Segoe UI", 11, "bold"), fg="#475569")
         table_frame.pack(fill="both", expand=True, padx=20, pady=10)
 
         self.table_chiffre = ttk.Treeview(table_frame, columns=("num", "nom", "ca_mois", "nb_resa_mois"), show="headings", height=12)
